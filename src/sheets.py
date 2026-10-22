@@ -14,12 +14,19 @@ from matplotlib.lines import Line2D
 from PIL import Image
 from shapely.geometry import LineString, Point
 
+import annotatie as A
 import haven as H
+from labels import HOOGTE
 
 PW, PH = 841.0, 594.0
-MAP = (15.0, 15.0, 620.0, 564.0)  # x, y, b, h in mm
-PANEL_X = 642.0
-HALO = [pe.withStroke(linewidth=2.2, foreground="black")]
+MAP = A.MAP                      # kaartvenster binnen het A1-kader van het NHL-template (x, y, b, h in mm)
+PANEL_X = 647.0                  # rechterkolom (boven titelblok en wijzigingsblok)
+KOLOM_ONDER = 178.0              # onderkant vrije ruimte in de rechterkolom
+TEMPLATE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Referentie",
+                        "NHL_template_onderdelen.dxf")
+TXT = "#111111"
+_BLAD = {"nr": 0, "van": 0}
+HALO = [pe.withStroke(linewidth=2.4, foreground="white")]
 HALO_W = [pe.withStroke(linewidth=2.0, foreground="white")]
 DATE = "22-10-2026"
 _IMG = None
@@ -45,9 +52,36 @@ def fig_new():
     bg.set_xlim(0, PW)
     bg.set_ylim(0, PH)
     bg.axis("off")
-    bg.add_patch(Rectangle((8, 8), PW - 16, PH - 16, fill=False, lw=1.2))
-    bg.add_patch(Rectangle((PANEL_X - 3, 8), PW - PANEL_X - 5, PH - 16, fill=False, lw=0.8))
     return f, bg
+
+
+def top_axes(f):
+    """Bovenste laag in papiermillimeters voor teksten, maatvoering, noordpijl en schaalstok."""
+    if not hasattr(f, "_top"):
+        t = f.add_axes([0, 0, 1, 1], zorder=30)
+        t.set_xlim(0, PW)
+        t.set_ylim(0, PH)
+        t.axis("off")
+        t.patch.set_alpha(0)
+        f._top = t
+    return f._top
+
+
+def fs_pt(h):
+    """Lettergrootte (pt) bij hoofdletterhoogte h (mm)."""
+    return h / 0.72 * 72 / 25.4
+
+
+def ax_rect(ax):
+    b = ax.get_position().bounds
+    return (b[0] * PW, b[1] * PH, b[2] * PW, b[3] * PH)
+
+
+def ax_view(ax):
+    x0, x1 = ax.get_xlim()
+    y0, y1 = ax.get_ylim()
+    r = ax_rect(ax)
+    return ((x0 + x1) / 2, (y0 + y1) / 2), (x1 - x0) / r[2] * 1000.0
 
 
 def map_axes(f, rect_mm, center, scale):
@@ -62,49 +96,62 @@ def map_axes(f, rect_mm, center, scale):
     y0, y1 = center[1] - sy / 2 - 200, center[1] + sy / 2 + 200
     c0, c1 = max(0, int((x0 - W) // 10)), min(3400, int((x1 - W) // 10) + 1)
     r0, r1 = max(0, int((N - y1) // 10)), min(3400, int((N - y0) // 10) + 1)
-    ax.imshow(img()[r0:r1, c0:c1], extent=(W + c0 * 10, W + c1 * 10, N - r1 * 10, N - r0 * 10),
-              interpolation="bilinear", zorder=0)
-    ax.add_patch(Rectangle((W, S), E - W, N - S, color="white", alpha=0.10, zorder=0.5))
+    if c1 > c0 and r1 > r0:
+        ax.imshow(img()[r0:r1, c0:c1], extent=(W + c0 * 10, W + c1 * 10, N - r1 * 10, N - r0 * 10),
+                  interpolation="bilinear", zorder=0)
+    ax.add_patch(Rectangle((W, S), E - W, N - S, color="white", alpha=0.28, zorder=0.5))   # rustiger ondergrond
     ax.set_xticks([])
     ax.set_yticks([])
+    for sp in ax.spines.values():
+        sp.set_linewidth(0.6)
     return ax
 
 
-def grid(ax, step, fs=6):
+def grid(ax, step, fs=None):
+    """Coördinatenraster; waarden alleen langs de linker- en bovenrand (horizontaal, buiten de kaartinhoud)."""
+    f = ax.figure
+    top = top_axes(f)
     x0, x1 = ax.get_xlim()
     y0, y1 = ax.get_ylim()
+    rx, ry, rb, rh = ax_rect(ax)
+    k = fs_pt(HOOGTE["T18"])
+    nv = A.noordvak((rx, ry, rb, rh))
     for x in np.arange(math.ceil(x0 / step) * step, x1, step):
-        ax.axvline(x, color="white", lw=0.35, alpha=0.6, zorder=1)
-        ax.text(x, y1, f"E {nl(x)}", fontsize=fs, ha="center", va="top", color="white", path_effects=HALO, zorder=20)
-        ax.text(x, y0, f"E {nl(x)}", fontsize=fs, ha="center", va="bottom", color="white", path_effects=HALO, zorder=20)
+        ax.axvline(x, color="white", lw=0.4, alpha=0.7, zorder=1)
+        px = rx + (x - x0) / (x1 - x0) * rb
+        if px < rx + 14 or px > rx + rb - 34:
+            continue
+        top.text(px, ry + rh - 1.5, f"{nl(x)}", fontsize=k, ha="center", va="top", color=TXT, path_effects=HALO)
     for y in np.arange(math.ceil(y0 / step) * step, y1, step):
-        ax.axhline(y, color="white", lw=0.35, alpha=0.6, zorder=1)
-        ax.text(x0, y, f" N {nl(y)}", fontsize=fs, ha="left", va="center", color="white", path_effects=HALO, zorder=20)
-        ax.text(x1, y, f"N {nl(y)} ", fontsize=fs, ha="right", va="center", color="white", path_effects=HALO, zorder=20)
+        ax.axhline(y, color="white", lw=0.4, alpha=0.7, zorder=1)
+        py = ry + (y - y0) / (y1 - y0) * rh
+        if py < ry + 8 or py > ry + rh - 8:
+            continue
+        top.text(rx + 1.5, py, f"{nl(y)}", fontsize=k, ha="left", va="center", rotation=90, color=TXT,
+                 path_effects=HALO)
 
 
 def north_scale(ax, scale, bar_m):
-    x0, x1 = ax.get_xlim()
-    y0, y1 = ax.get_ylim()
-    sx, sy = (x1 - x0), (y1 - y0)
-    # noordpijl rechtsboven
-    nx, ny = x1 - 0.05 * sx, y1 - 0.12 * sy
-    L = 0.06 * sy
-    ax.add_patch(MPoly([(nx, ny + L), (nx + L * 0.28, ny), (nx, ny + L * 0.25), (nx - L * 0.28, ny)],
-                       closed=True, fc="white", ec="black", lw=0.8, zorder=30))
-    ax.text(nx, ny + L * 1.08, "N", ha="center", va="bottom", fontsize=14, weight="bold", color="white",
-            path_effects=HALO, zorder=30)
-    ax.text(nx, ny - L * 0.15, "grid-noord", ha="center", va="top", fontsize=6, color="white", path_effects=HALO, zorder=30)
-    # schaalstok linksonder
-    bx, by = x0 + 0.04 * sx, y0 + 0.035 * sy
-    h = 0.008 * sy
-    ax.add_patch(Rectangle((bx - 0.01 * sx, by - 2.6 * h), bar_m + 0.02 * sx, 7 * h, fc="white", alpha=0.85, zorder=29))
+    """Noordpijl rechtsboven en schaalstok rechtsonder in het kaartvenster (papiercoördinaten)."""
+    top = top_axes(ax.figure)
+    rect = ax_rect(ax)
+    nb = A.noordvak(rect).bounds
+    cx, cy = (nb[0] + nb[2]) / 2, nb[1] + 8
+    L = 18.0
+    top.add_patch(MPoly([(cx, cy + L), (cx + 5, cy), (cx, cy + 4), (cx - 5, cy)], closed=True, fc=TXT, ec=TXT, lw=0.6))
+    top.text(cx, cy + L + 1.5, "N", ha="center", va="bottom", fontsize=fs_pt(5.0), weight="bold", color=TXT,
+             path_effects=HALO)
+    top.text(cx, cy - 1.5, "grid-noord", ha="center", va="top", fontsize=fs_pt(1.8), color=TXT, path_effects=HALO)
+    sb = A.schaalvak(rect).bounds
+    blen = bar_m / scale * 1000.0
+    bx, by = sb[2] - 6 - blen, sb[1] + 8
+    top.add_patch(Rectangle((bx - 4, sb[1] + 1), blen + 8, sb[3] - sb[1] - 2, fc="white", alpha=0.9, ec="none"))
     for i in range(5):
-        ax.add_patch(Rectangle((bx + i * bar_m / 5, by), bar_m / 5, h, fc="black" if i % 2 == 0 else "white",
-                               ec="black", lw=0.6, zorder=30))
-    for i, t in [(0, "0"), (5, f"{nl(bar_m)} m")]:
-        ax.text(bx + i * bar_m / 5, by + 1.4 * h, t, ha="center", va="bottom", fontsize=7, zorder=31)
-    ax.text(bx + bar_m / 2, by - 0.6 * h, f"schaal 1:{nl(scale)} (A1)", ha="center", va="top", fontsize=7, zorder=31)
+        top.add_patch(Rectangle((bx + i * blen / 5, by), blen / 5, 2.0, fc=TXT if i % 2 == 0 else "white", ec=TXT, lw=0.5))
+    k = fs_pt(HOOGTE["T18"])
+    top.text(bx, by + 3.2, "0", ha="center", va="bottom", fontsize=k, color=TXT)
+    top.text(bx + blen, by + 3.2, f"{nl(bar_m)} m", ha="center", va="bottom", fontsize=k, color=TXT)
+    top.text(bx + blen / 2, by - 1.6, f"schaal 1:{nl(scale)} (A1)", ha="center", va="top", fontsize=k, color=TXT)
 
 
 def poly_xy(g):
@@ -118,10 +165,12 @@ def poly_xy(g):
 
 
 def draw_design(ax, d, labels=True, phase=None, fs=6.5, anchors=True, dims=True, detail=False):
-    order = ["HV-DIEPTELIJN", "HV-VOORHAVEN", "HV-BAGGER", "HV-RESERVE", "HV-CONTAINER", "HV-GRAAN", "HV-RORO", "HV-HAVENDIENST", "HV-CENTRALE",
-             "HV-LNG", "HV-D-VERKEER", "HV-D-PARKEER", "HV-D-STACK", "HV-D-REEFER", "HV-D-LEEG", "HV-D-OPSLAG",
+    """Tekent alleen de geometrie; teksten en maatvoering volgen via annoteer()/teken_ann()."""
+    order = ["HV-DIEPTELIJN", "HV-VOORHAVEN", "HV-BAGGER", "HV-RESERVE", "HV-CONTAINER", "HV-GRAAN", "HV-RORO", "HV-HAVENDIENST",
+             "HV-CENTRALE", "HV-LNG", "HV-D-VERKEER", "HV-D-PARKEER", "HV-D-STACK", "HV-D-REEFER", "HV-D-LEEG", "HV-D-OPSLAG",
              "HV-D-INSTALLATIE", "HV-D-GEBOUW", "HV-GEUL", "HV-GOLFBREKER", "HV-SCHIP", "HV-DRAAIKOM", "HV-KADE",
-             "HV-D-KRAAN", "HV-WEG", "HV-SPOOR", "HV-LEIDING", "HV-VEILIGHEID", "HV-FASEGRENS", "HV-GEUL-AS", "HV-SLEEPBOOT", "HV-ANKERPUNT"]
+             "HV-D-KRAAN", "HV-WEG", "HV-SPOOR", "HV-LEIDING", "HV-VEILIGHEID", "HV-FASEGRENS", "HV-GEUL-AS", "HV-SLEEPBOOT",
+             "HV-ANKERPUNT"]
     ls_map = {"dashed": (0, (5, 3)), "dotted": (0, (1, 2)), "dashdot": (0, (8, 3, 2, 3))}
     for z, lay in enumerate(order):
         aci, col, fill, _ = H.LAYERS[lay]
@@ -132,56 +181,45 @@ def draw_design(ax, d, labels=True, phase=None, fs=6.5, anchors=True, dims=True,
             future = phase is not None and it["phase"] > phase
             if lay == "HV-ANKERPUNT":
                 if anchors:
-                    ax.plot(g.x, g.y, marker="+", ms=9, mew=1.6, color="red", zorder=40)
-                    ax.text(g.x, g.y, f" {it['label']}", color="white", fontsize=fs, va="bottom",
-                            path_effects=[pe.withStroke(linewidth=2, foreground="red")], zorder=40, clip_on=True)
+                    ax.plot(g.x, g.y, marker="+", ms=7, mew=1.2, color="#d00000", zorder=40)
                 continue
-            lsty = ls_map.get(it.get("style"), "-")
             if lay == "HV-DIEPTELIJN":
                 xy = np.array(g.coords)
-                ax.plot(xy[:, 0], xy[:, 1], color=col, lw=0.7, alpha=0.9, zorder=1.5)
-                if labels:
-                    x0, x1 = ax.get_xlim()
-                    y0, y1 = ax.get_ylim()
-                    stap = max(2000.0, (x1 - x0) / 4)
-                    for t in np.arange(stap / 2, g.length, stap):
-                        c = g.interpolate(t)
-                        if x0 < c.x < x1 and y0 < c.y < y1:
-                            ax.text(c.x, c.y, it["label"], fontsize=fs * 0.85, color=col, ha="center", va="center",
-                                    path_effects=HALO, zorder=1.6, clip_on=True)
+                ax.plot(xy[:, 0], xy[:, 1], color=col, lw=0.6, alpha=0.8, zorder=1.5)
                 continue
+            if not detail and lay.startswith("HV-D-"):
+                continue
+            lsty = ls_map.get(it.get("style"), "-")
             if g.geom_type in ("Polygon", "MultiPolygon"):
                 for xy in poly_xy(g):
                     if lay == "HV-BAGGER" and it.get("style") == "dashed" and not future:
-                        ax.add_patch(MPoly(xy, closed=True, fc=col, alpha=0.6, ec="none", zorder=2 + z))
-                        ax.add_patch(MPoly(xy, closed=True, fill=False, ec="white", lw=0.8, ls=(0, (4, 3)), zorder=2 + z))
+                        ax.add_patch(MPoly(xy, closed=True, fc=col, alpha=0.5, ec="none", zorder=2 + z))
+                        ax.add_patch(MPoly(xy, closed=True, fill=False, ec="white", lw=0.7, ls=(0, (4, 3)), zorder=2 + z))
                         continue
                     if future or it.get("style") == "dashed":
-                        ax.add_patch(MPoly(xy, closed=True, fill=False, ec=col, lw=1.0, ls=(0, (4, 3)), zorder=2 + z))
+                        ax.add_patch(MPoly(xy, closed=True, fill=False, ec=col, lw=0.9, ls=(0, (4, 3)), zorder=2 + z))
                         continue
                     if lay == "HV-RESERVE":
                         ax.add_patch(MPoly(xy, closed=True, fc=col, alpha=fill, ec="none", zorder=2 + z))
-                        ax.add_patch(MPoly(xy, closed=True, fc="none", ec="#6c757d", lw=0.6, hatch="//", zorder=2 + z))
+                        ax.add_patch(MPoly(xy, closed=True, fc="none", ec="#6c757d", lw=0.5, hatch="//", zorder=2 + z))
                     elif lay == "HV-DRAAIKOM":
-                        ax.add_patch(MPoly(xy, closed=True, fill=False, ec=col, lw=1.6, ls=(0, (6, 3)), zorder=2 + z))
+                        ax.add_patch(MPoly(xy, closed=True, fill=False, ec=col, lw=1.4, ls=(0, (6, 3)), zorder=2 + z))
                     elif lay == "HV-GEUL":
                         ax.add_patch(MPoly(xy, closed=True, fc=col, alpha=0.18, ec="none", zorder=2 + z))
-                        ax.add_patch(MPoly(xy, closed=True, fill=False, ec=col, lw=1.0, ls=(0, (6, 2)), zorder=2 + z))
+                        ax.add_patch(MPoly(xy, closed=True, fill=False, ec=col, lw=0.9, ls=(0, (6, 2)), zorder=2 + z))
                     elif fill:
-                        ax.add_patch(MPoly(xy, closed=True, fc=col, alpha=fill, ec=col, lw=0.9, ls=lsty, zorder=2 + z))
-                        if fill < 1:
-                            ax.add_patch(MPoly(xy, closed=True, fill=False, ec=col, lw=0.9, ls=lsty, zorder=2 + z))
+                        ax.add_patch(MPoly(xy, closed=True, fc=col, alpha=fill * 0.85, ec=col, lw=0.8, ls=lsty, zorder=2 + z))
                     else:
-                        ax.add_patch(MPoly(xy, closed=True, fill=False, ec=col, lw=0.9, ls=lsty, zorder=2 + z))
+                        ax.add_patch(MPoly(xy, closed=True, fill=False, ec=col, lw=0.8, ls=lsty, zorder=2 + z))
             elif g.geom_type == "LineString":
                 xy = np.array(g.coords)
-                lw = {"HV-KADE": 2.2, "HV-WEG": 1.8, "HV-SPOOR": 1.2, "HV-FASEGRENS": 1.4, "HV-GEUL-AS": 0.6,
-                      "HV-D-KRAAN": 0.7, "HV-D-INSTALLATIE": 0.9, "HV-VEILIGHEID": 1.3}.get(lay, 1.0)
+                lw = {"HV-KADE": 2.0, "HV-WEG": 1.6, "HV-SPOOR": 1.1, "HV-FASEGRENS": 1.2, "HV-GEUL-AS": 0.5,
+                      "HV-D-KRAAN": 0.7, "HV-D-INSTALLATIE": 0.9, "HV-VEILIGHEID": 1.1}.get(lay, 0.9)
                 if lay == "HV-SPOOR" and detail is False and it.get("dlabel"):
                     lw = 0.6
                 if lay == "HV-SPOOR":
-                    ax.plot(xy[:, 0], xy[:, 1], color="white", lw=2.4, zorder=2 + z, alpha=0.0 if future else 1)
-                    ax.plot(xy[:, 0], xy[:, 1], color="black", lw=1.2, ls=(0, (3, 3)), zorder=2 + z, alpha=0.4 if future else 1)
+                    ax.plot(xy[:, 0], xy[:, 1], color="white", lw=2.2, zorder=2 + z, alpha=0.0 if future else 1)
+                    ax.plot(xy[:, 0], xy[:, 1], color="black", lw=1.1, ls=(0, (3, 3)), zorder=2 + z, alpha=0.4 if future else 1)
                     continue
                 if lay == "HV-GEUL-AS":
                     lsty = (0, (10, 3, 2, 3))
@@ -189,44 +227,34 @@ def draw_design(ax, d, labels=True, phase=None, fs=6.5, anchors=True, dims=True,
                     lsty = (0, (6, 2))
                 ax.plot(xy[:, 0], xy[:, 1], color=col, lw=lw, ls=(0, (4, 3)) if future else lsty, zorder=2 + z,
                         alpha=0.6 if future else 1)
-            if detail and it.get("dlabel") and not future:
-                c = g.representative_point() if g.geom_type != "LineString" else g.interpolate(0.5, normalized=True)
-                ax.text(c.x, c.y, it["dlabel"], fontsize=fs * 0.9, ha="center", va="center", color="white",
-                        path_effects=HALO, zorder=55, clip_on=True)
-            if labels and it["label"] and lay not in ("HV-GEUL-AS",) and not future:
-                c = g.representative_point() if g.geom_type != "LineString" else g.interpolate(0.5, normalized=True)
-                if lay == "HV-SLEEPBOOT":
-                    c = Point(g.centroid.x, g.centroid.y + 180)
-                rot = 0
-                if g.geom_type == "LineString":
-                    (x0, y0), (x1, y1) = g.coords[0], g.coords[-1]
-                    rot = math.degrees(math.atan2(y1 - y0, x1 - x0))
-                    rot = rot + 180 if (rot > 90 or rot < -90) else rot
-                    c = Point(c.x - 60 * math.sin(math.radians(rot)), c.y + 60 * math.cos(math.radians(rot)))
-                ax.text(c.x, c.y, it["label"], fontsize=fs, ha="center", va="center", rotation=rot, color="white",
-                        path_effects=HALO, zorder=50, clip_on=True)
-    if dims:
-        for p1, p2, off, text in d.dims:
-            dim(ax, p1, p2, off, text, fs)
+
+
+def teken_ann(f, ann):
+    """Maatvoering en teksten (papiermm) uit annoteer() op het blad zetten."""
+    top = top_axes(f)
+    for m in ann["maat"]:
+        a, b, Aa, Bb, n, sg = m["a"], m["b"], m["A"], m["B"], m["n"], m["sg"]
+        for p, q in ((a, Aa), (b, Bb)):
+            e = (q[0] + n[0] * 1.5 * sg, q[1] + n[1] * 1.5 * sg)
+            top.plot([p[0] + n[0] * 1.0 * sg, e[0]], [p[1] + n[1] * 1.0 * sg, e[1]], color=TXT, lw=0.45)
+        top.annotate("", xy=Aa, xytext=Bb, arrowprops=dict(arrowstyle="<|-|>", color=TXT, lw=0.6, mutation_scale=6))
+        top.text(m["pos"][0], m["pos"][1], m["tekst"], fontsize=fs_pt(m["h"]), rotation=m["rot"], rotation_mode="anchor",
+                 ha="center", va="center", color=TXT, path_effects=HALO)
+    for p in ann["labels"]:
+        if p.verwijs:
+            (ax0, ay0), (ax1, ay1) = p.verwijs
+            top.plot([ax0, ax1], [ay0, ay1], color=TXT, lw=0.45)
+            top.plot([ax0], [ay0], marker="o", ms=1.6, color=TXT)
+        top.text(p.x, p.y, p.tekst, fontsize=fs_pt(p.h), ha="center", va="center", color=TXT,
+                 weight="bold" if p.laag in ("T35", "T50") else None, path_effects=HALO, linespacing=1.2)
 
 
 def dim(ax, p1, p2, off, text, fs=6.5):
-    p1, p2 = np.array(p1), np.array(p2)
-    t = (p2 - p1) / np.linalg.norm(p2 - p1)
-    nrm = np.array([-t[1], t[0]])
-    a, b = p1 + nrm * off, p2 + nrm * off
-    kw = dict(color="white", lw=0.8, zorder=45)
-    ax.plot([p1[0], a[0] + nrm[0] * 15 * np.sign(off)], [p1[1], a[1] + nrm[1] * 15 * np.sign(off)], **kw)
-    ax.plot([p2[0], b[0] + nrm[0] * 15 * np.sign(off)], [p2[1], b[1] + nrm[1] * 15 * np.sign(off)], **kw)
-    ax.annotate("", xy=a, xytext=b, arrowprops=dict(arrowstyle="<|-|>", color="white", lw=0.9, mutation_scale=7), zorder=45)
-    rot = math.degrees(math.atan2(t[1], t[0]))
-    rot = rot + 180 if (rot > 90 or rot < -90) else rot
-    m = (a + b) / 2 + nrm * 30 * np.sign(off if off else 1)
-    ax.text(m[0], m[1], text, fontsize=fs, rotation=rot, ha="center", va="center", color="#ffd60a",
-            path_effects=HALO, zorder=46, clip_on=True)
+    """Vervallen: maatvoering loopt via annotatie.maatlijn() en teken_ann()."""
+    return None
 
 
-def legend(bg, y_top, d, fs=7.2):
+def legend(bg, y_top, d, fs=7.2, detail=False):
     bg.text(PANEL_X + 2, y_top, "LEGENDA", fontsize=9, weight="bold", va="top")
     y = y_top - 7
     skip = {"HV-ONDERGROND", "HV-TEKST", "HV-RASTER", "HV-MAAT", "HV-GEUL-AS"}
@@ -234,7 +262,8 @@ def legend(bg, y_top, d, fs=7.2):
         skip |= {"HV-SLEEPBOOT", "HV-CONFLICT"}
     else:
         skip |= {"HV-CONFLICT"}
-    used = {i["layer"] for i in d.items} | {"HV-KUSTLIJN", "HV-HAVENMOND", "HV-ZOEKGEBIED"}
+    used = {i["layer"] for i in d.items if detail or not i["layer"].startswith("HV-D-")} | {"HV-KUSTLIJN", "HV-HAVENMOND",
+                                                                                            "HV-ZOEKGEBIED"}
     for name, (aci, col, fill, desc) in H.LAYERS.items():
         if name in skip or name not in used:
             continue
@@ -261,35 +290,83 @@ def legend(bg, y_top, d, fs=7.2):
     return y
 
 
+VERSIES = {
+    "DO": [("01", "v5.0: vorm Porto Central-render, alleen functies uit de opdracht"),
+           ("02", "v6.1: terminals uitgewerkt (DO-06 t/m DO-08), overslagproces"),
+           ("03", "v7.0: golftoets, dieptezones, bodemmodel GEBCO, LNG-veiligheidszones"),
+           ("04", "v8.0: geul met bocht, zwaaiplaats 2 x LOA, golftoets met reflectie"),
+           ("05", "v8.1: NHL-template, teksten zonder overlap, rustiger tekenbeeld")],
+    "SO": [("01", "v4.0: schetsontwerp op de Porto Central-render met bespreekpunten"),
+           ("02", "v4.1: NHL-template, teksten zonder overlap, rustiger tekenbeeld")],
+}
+
+
+def titelblok_waarden(d, blad, naam, schaal, nr, van):
+    import textwrap
+    regels = textwrap.wrap(f"{blad} {naam}", 33) or [blad]
+    status = "Schetsontwerp (SO)" if d.code == "SO" else "Definitief ontwerp (DO)"
+    sit2 = " ".join(regels[1:]) if len(regels) > 1 else status
+    return {"OPDRACHTGEVER": "NHL Stenden", "PROJECTNAAM1": "Havenontwerp Porto Central",
+            "PROJECTNAAM2": "Presidente Kennedy (ES), Brazilië", "SITUATIE1": regels[0],
+            "SITUATIE2": sit2[:33],
+            "SCHAAL": schaal, "STATUS": d.code, "FORMAAT": "A1", "PROJECTKNR": "Groep 1",
+            "TEKNR": f"HAVEN-{blad}", "BLADNR": f"{nr} van {van}", "VERSIE": d.version, "GETEKEND": "Groep 1",
+            "GECONTROLEERD": "-", "VRIJGAVE": "-", "STATUS_GR": ""}
+
+
+def wijziging_waarden(d):
+    w = {}
+    for i, (_, t) in enumerate(VERSIES[d.code], 1):
+        w[f"WIJZIGINGEN{i}"] = t
+        w[f"DATUM{i}"] = DATE
+    for i in range(len(VERSIES[d.code]) + 1, 8):
+        w[f"WIJZIGINGEN{i}"] = ""
+        w[f"DATUM{i}"] = ""
+    return w
+
+
+_TPL = None
+
+
+def template_doc():
+    global _TPL
+    if _TPL is None:
+        import ezdxf
+        _TPL = ezdxf.readfile(TEMPLATE)
+    return _TPL
+
+
 def title_block(bg, d, blad, naam, schaal, extra=None):
-    x0, y0, w = PANEL_X - 3, 8, PW - PANEL_X - 5
+    """A1-kader, titelblok en wijzigingsblok uit het NHL-template + algemene gegevens in de rechterkolom."""
+    from ezdxf.addons.drawing import Frontend, RenderContext
+    from ezdxf.addons.drawing.config import BackgroundPolicy, ColorPolicy, Configuration
+    from ezdxf.addons.drawing.matplotlib import MatplotlibBackend
+    _BLAD["nr"] += 1
+    doc = template_doc()
+    msp = doc.modelspace()
+    for e in list(msp):
+        msp.delete_entity(e)
+    kader = msp.add_blockref("SAL-TEKENBLAD_A1-SO", (0, 0))
+    tb = msp.add_blockref("TITELBLOK_BUREAUSCHMIDT", (831, 10))
+    tb.add_auto_attribs(titelblok_waarden(d, blad, naam, schaal, _BLAD["nr"], _BLAD["van"]))
+    wb = msp.add_blockref("WIJZIGINGSBLOK_BUREAUSCHMIDT", (643, 95.8))
+    wb.add_auto_attribs(wijziging_waarden(d))
+    cfg = Configuration(background_policy=BackgroundPolicy.WHITE, color_policy=ColorPolicy.BLACK)
+    Frontend(RenderContext(doc), MatplotlibBackend(bg, adjust_figure=False), config=cfg).draw_entities([kader, tb, wb])
+    bg.set_xlim(0, PW)
+    bg.set_ylim(0, PH)
+    bg.set_aspect("auto")
+    bg.axis("off")
     rows = [
-        ("Project", "Havenontwerp Porto Central, Presidente Kennedy (ES) - Groep 1"),
-        ("Module", "Atelier De Haven A | NHL Stenden Civiele Techniek"),
-        ("Bladnaam", naam),
-        ("Status", "SCHETSONTWERP (SO)" if d.code == "SO" else "DEFINITIEF ONTWERP (DO)"),
-        ("Blad / versie", f"{blad}  |  versie {d.version}  |  {DATE}"),
-        ("Schaal", f"{schaal} op A1 (841 x 594 mm)"),
-        ("Stelsel", "SIRGAS 2000 / UTM zone 24S  EPSG:31984  eenheid m"),
-        ("Hoogtedatum", "diepten in m t.o.v. MLWS, voorlopig; MLWS-DHN te verifiëren"),
-        ("Kaartbron", "Copernicus Sentinel-2 L2A (ESA), 03-07-2026, 10 m"),
-        ("", "tegels 24KTB/24KUB, AWS Open Data COG; geraadpleegd " + DATE),
-        ("Kustlijn", "waterlijn 03-07-2026 uit NDWI (geen MLWS-lijn)"),
-        ("Bathymetrie", "GEBCO 2026 (ca. 450 m) + Copernicus DEM 30 m; MSL->MLWS +0,7 m (aanname)"),
-        ("", "geen lodingen: peiling (multibeam) nodig vóór uitvoering"),
-    ]
-    if extra:
-        rows += extra
-    h = 5.2 * len(rows) + 6
-    bg.add_patch(Rectangle((x0, y0), w, h, fill=False, lw=0.8))
-    y = y0 + h - 4
-    for k, v in rows:
-        big = k == "Status"
-        bg.text(x0 + 2, y, k, fontsize=6.5, va="center", color="#555")
-        bg.text(x0 + 26, y, v, fontsize=9 if big else 6.8, va="center", weight="bold" if big or k == "Bladnaam" else None,
-                color=("#c1121f" if d.code == "SO" else "#1b4332") if big else "black")
-        y -= 5.2
-    return y0 + h
+        "**Algemene gegevens",
+        "Stelsel: SIRGAS 2000 / UTM zone 24S (EPSG:31984), eenheid m",
+        "Hoogte: m t.o.v. MLWS (voorlopig; MLWS = MSL - 0,7 m)",
+        "Luchtfoto: Copernicus Sentinel-2 L2A, 03-07-2026, 10 m",
+        "Bathymetrie: GEBCO 2026 + Copernicus DEM; geen peiling",
+        f"Atelier De Haven A, NHL Stenden | {DATE} | schaal {schaal}",
+    ] + [f"{k}: {v}" for k, v in (extra or [])]
+    text_block(bg, 137.0 + 4.0 * len(rows) + 3, rows, fs=fs_pt(1.8), lh=4.0)
+    return 140.0
 
 
 def text_block(bg, y, lines, fs=6.8, lh=4.2, title=None, x=None):
@@ -319,23 +396,23 @@ def sheet_overview(pdf, d, coast, geo):
         return (p["E"] + u * eu[0], p["N"] + u * eu[1])
     zone = [off(pts[0], -4000), off(pts[0], 12000), off(pts[1], 12000), off(pts[1], -4000)]
     ax.add_patch(MPoly(zone, closed=True, fill=False, ec="#ff4fd8", lw=1.8, ls=(0, (6, 3)), zorder=5))
-    tx, ty = off(pts[1], 9000)
-    ax.text(tx, ty - 1200, "Zoekgebied locatie B (indicatief)\nkuststrook tussen de bronpunten,\n4 km landinwaarts tot 12 km zeewaarts",
-            color="#ff4fd8", fontsize=8, ha="center", va="top", path_effects=HALO, zorder=50)
+    from shapely.geometry import Point as SP, Polygon as SPoly
+    extra = [("Zoekgebied locatie B (indicatief)", SPoly(zone).exterior, "T25", 3)]
     for name, p in list(geo.items())[:2]:
-        ax.plot(p["E"], p["N"], "o", ms=8, mfc="none", mec="#ff4fd8", mew=2, zorder=40)
-        ax.text(p["E"] - 300, p["N"], f"{name}\n{p['lat']:.6f}, {p['lon']:.6f}\nE {nl(p['E'], 1)}  N {nl(p['N'], 1)}",
-                fontsize=7, ha="right", va="center", color="white", path_effects=HALO, zorder=50)
+        ax.plot(p["E"], p["N"], "o", ms=7, mfc="none", mec="#ff4fd8", mew=1.6, zorder=40)
+        extra.append((f"{name}\nE {nl(p['E'], 1)}  N {nl(p['N'], 1)}", SP(p["E"], p["N"]), "T18", 2))
     xy = np.array(coast.coords)
     ax.plot(xy[:, 0], xy[:, 1], color="#00e5ff", lw=0.8, zorder=6)
-    draw_design(ax, d, labels=False, fs=6, dims=False)
-    for k, a in d.anchor.items():
-        if k in ("A1", "A3", "A4", "A5"):
-            ax.text(a["E"], a["N"] - 350, f"{k} {a['naam']}", fontsize=7, color="white", ha="center", va="top",
-                    path_effects=HALO, zorder=50, rotation=0, clip_on=True)
-    for (x, y, t) in [(296000, 7645900, "kustbebouwing\nN ≈ 7.646.300"), (295800, 7652600, "Porto Central-terrein\nPresidente Kennedy (ES)"),
-                      (293800, 7645000, "rivier + mangrove/wetland\n(vermijden)")]:
-        ax.text(x, y, t, fontsize=7, color="#ffd60a", ha="right", path_effects=HALO, zorder=50)
+    draw_design(ax, d, anchors=False)
+    for k, nm in (("A1", "A1 kustpunt"), ("A3", "A3 havenmond"), ("A5", "A5 einde geul")):
+        a_ = d.anchor[k]
+        ax.plot(a_["E"], a_["N"], marker="+", ms=7, mew=1.2, color="#d00000", zorder=40)
+        extra.append((nm, SP(a_["E"], a_["N"]), "T18", 4))
+    for (x, y, t) in [(296000, 7646300, "kustbebouwing"), (295800, 7652600, "Porto Central-terrein"),
+                      (293800, 7645000, "rivier en wetland (vermijden)")]:
+        extra.append((t, SP(x, y), "T18", 5))
+    extra.append(("Haven (DO)" if d.code == "DO" else "Haven (SO)", SP(*d.center), "T25", 1))
+    teken_ann(f, A.annoteer(d, center, 50000, MAP, "overzicht", extra=extra, dims=False))
     north_scale(ax, 50000, 5000)
     legend_y = legend(bg, PH - 14, d, fs=6.6)
     a1 = d.anchor["A1"]
@@ -358,7 +435,6 @@ def sheet_overview(pdf, d, coast, geo):
         f"Noordrichting: convergentie {ga['meridiaanconvergentie_graden']:.2f} gr",
     ]
     text_block(bg, legend_y - 3, lines, fs=6.6, lh=3.9)
-    masterplan_inset(bg, 92, render=d.code == "DO")
     title_block(bg, d, f"{d.code}-01", "Overzicht zoekgebied en havenligging", "1:50.000")
     pdf.savefig(f)
     plt.close(f)
@@ -369,14 +445,23 @@ def sheet_layout(pdf, d, phase_note=None, markup=None, blad="02", naam="Havenind
     center = d.center or H.P(-400, 50)
     ax = map_axes(f, MAP, center, d.scale)
     grid(ax, 1000)
-    draw_design(ax, d, fs=6.2 if d.scale <= 10000 else 5.6)
+    draw_design(ax, d)
     north_scale(ax, d.scale, 1000)
+    ann = d.ann["02"] if not markup else None
     if markup:
+        from shapely.geometry import box as sbox
+        res = []
+        top = top_axes(f)
         for nr, (u, v, r, txt) in enumerate(markup, 1):
             x, y = d.P(u, v)
-            ax.add_patch(plt.Circle((x, y), r, fill=False, ec="red", lw=2.2, zorder=60))
-            ax.text(x + r * 0.75, y + r * 0.75, str(nr), fontsize=11, weight="bold", color="white",
-                    bbox=dict(boxstyle="circle", fc="red", ec="white"), zorder=61, clip_on=True)
+            ax.add_patch(plt.Circle((x, y), r, fill=False, ec="red", lw=2.0, zorder=60))
+            px, py = MAP[0] + MAP[2] / 2 + (x + r * 0.75 - center[0]) / d.scale * 1000, \
+                MAP[1] + MAP[3] / 2 + (y + r * 0.75 - center[1]) / d.scale * 1000
+            top.text(px, py, str(nr), fontsize=fs_pt(3.5), weight="bold", color="white", ha="center", va="center",
+                     bbox=dict(boxstyle="circle", fc="red", ec="white"))
+            res.append(sbox(px - 5, py - 5, px + 5, py + 5))
+        ann = A.annoteer(d, center, d.scale, MAP, "plan", gereserveerd=res)
+    teken_ann(f, ann)
     y = legend(bg, PH - 14, d, fs=6.6)
     m = d.m
     if markup:
@@ -423,7 +508,6 @@ def sheet_layout(pdf, d, phase_note=None, markup=None, blad="02", naam="Havenind
         if phase_note:
             lines += phase_note
         y = text_block(bg, y - 3, lines, fs=6.3, lh=3.8)
-    masterplan_inset(bg, 92, render=d.code == "DO")
     title_block(bg, d, f"{d.code}-{blad}", naam, f"1:{nl(d.scale)}")
     pdf.savefig(f)
     plt.close(f)
@@ -433,9 +517,10 @@ def sheet_detail(pdf, d, blad, naam, center, scale, lines):
     f, bg = fig_new()
     ax = map_axes(f, MAP, center, scale)
     grid(ax, 500)
-    draw_design(ax, d, fs=6.6, anchors=False, dims=False, detail=True)
+    draw_design(ax, d, anchors=False, detail=True)
     north_scale(ax, scale, 500)
-    y = legend(bg, PH - 14, d, fs=6.2)
+    teken_ann(f, d.ann[blad])
+    y = legend(bg, PH - 14, d, fs=6.2, detail=True)
     text_block(bg, y - 3, lines, fs=6.6, lh=4.0)
     title_block(bg, d, f"{d.code}-{blad}", naam, f"1:{nl(scale)}")
     pdf.savefig(f)
@@ -510,15 +595,15 @@ def detail_lines(d, blad):
 def sheet_phases(pdf, d):
     f, bg = fig_new()
     center = d.center or H.P(-400, 50)
-    panels = [(15, 302, 305, 277), (325, 302, 305, 277), (15, 15, 305, 277)]
+    panels = [(20, 297, 311, 287), (332, 297, 311, 287), (20, 10, 311, 287)]
     for (x, y, w, h), ph, jr in zip(panels, (1, 2, 3), (2025, 2035, 2045)):
         ax = map_axes(f, (x, y, w, h), center, 2 * d.scale)
-        draw_design(ax, d, labels=False, phase=ph, anchors=False, dims=False)
+        draw_design(ax, d, phase=ph, anchors=False)
         ax.text(0.02, 0.97, f"Fase {ph}  -  {jr}", transform=ax.transAxes, fontsize=13, weight="bold", va="top",
-                color="white", path_effects=HALO)
+                color=TXT, path_effects=HALO)
         ax.text(0.02, 0.90, ["2 containerligplaatsen, 800 m kade, 72 ha", "3 containerligplaatsen, 1.200 m kade, 108 ha",
                              "4 containerligplaatsen, 1.600 m kade, 144 ha"][ph - 1],
-                transform=ax.transAxes, fontsize=8, va="top", color="white", path_effects=HALO)
+                transform=ax.transAxes, fontsize=8, va="top", color=TXT, path_effects=HALO)
         north_scale(ax, 2 * d.scale, 2000)
     rows = [("Onderdeel", "Fase 1 - 2025", "Fase 2 - 2035", "Fase 3 - 2045"),
             ("Containerligplaatsen", "2 (C1-C2)", "3 (+C3)", "4 (+C4)"),
@@ -532,8 +617,8 @@ def sheet_phases(pdf, d):
             ("LNG", "steiger + 3 tanks", "doorzet 6 mln m3", "8 mln m3; N-1 besluit"),
             ("Centrale", "eindcapaciteit", "-", "-"),
             ("Golfbrekers + geul", "volledig", "onderhoud", "onderhoud")]
-    x0, y0 = 330, 285
-    cw = [70, 52, 52, 52]
+    x0, y0 = 340, 280
+    cw = [66, 52, 52, 52]
     bg.text(x0, y0 + 2, "Fasering (rekenboek Containers / Overige terminals)", fontsize=10, weight="bold")
     for r, row in enumerate(rows):
         xx = x0
@@ -600,10 +685,10 @@ def sheet_tables(pdf, d, geo):
         rows += [("Baggervolume zone 1/2/3", " / ".join(nl(gw[f'zone{z}']['volume'] / 1e6, 1) for z in (1, 2, 3)) + " mln m3",
                   "celmethode GEBCO/DEM", "indicatief"),
                  ("Besparing dieptezones", f"{nl(gw['besparing_dieptezones_m3'] / 1e6, 2)} mln m3", "t.o.v. overal -18,20", "")]
-    y = table(bg, 15, PH - 22, ("Onderdeel", "Gemeten in DO-tekening", "Rekenboek", "Status"), [78, 75, 92, 58], rows,
+    y = table(bg, 26, PH - 24, ("Onderdeel", "Gemeten in DO-tekening", "Rekenboek", "Status"), [78, 75, 92, 58], rows,
               title="Maatstaat DO - tekening tegen rekenboek")
     an = [(k, a["naam"], nl(a["E"], 1), nl(a["N"], 1), f"{a['lat']:.6f}", f"{a['lon']:.6f}") for k, a in d.anchor.items()]
-    y = table(bg, 15, y - 14, ("Punt", "Omschrijving", "E (m)", "N (m)", "Lat", "Lon"), [16, 92, 40, 44, 55, 56], an,
+    y = table(bg, 26, y - 14, ("Punt", "Omschrijving", "E (m)", "N (m)", "Lat", "Lon"), [16, 92, 40, 44, 55, 56], an,
               title="Ontwerpankerpunten - EPSG:31984 (E/N) en WGS84 (lat/lon)")
     text_block(bg, y - 6, [
         "Geometrie overgetrokken van de Porto Central-render (Referentie/Porto_Central_render.png), pixel (x, y omlaag):",
@@ -611,15 +696,15 @@ def sheet_tables(pdf, d, geo):
         f"Kustfit: gemiddeld {nl(d.info['render_kustfit_gem_afwijking_m'])} m.",
         "E = a x + b y + c;  N = d x + e y + f  met a..f in Maatstaat/maatstaat.json (render_affine).",
         "Alle maten in de DXF staan direct in projectcoördinaten; er is geen lokale verschuiving meer nodig.",
-    ], fs=8.4, lh=5.2, x=15)
+    ], fs=8.4, lh=5.2, x=26)
     # georeferentie
     ga, gs = geo["_afstand"], geo["_gshhs"]
     rows = [(n, f"{p['lat']:.6f}, {p['lon']:.6f}", nl(p["E"], 1), nl(p["N"], 1), f"{nl(p['afstand_tot_waterlijn_m'])} m")
             for n, p in list(geo.items())[:2]]
-    y2 = table(bg, 340, PH - 22, ("Bronpunt case", "WGS84", "E", "N", "tot waterlijn"), [78, 72, 46, 50, 46], rows,
+    y2 = table(bg, 345, PH - 24, ("Bronpunt case", "WGS84", "E", "N", "tot waterlijn"), [78, 72, 46, 50, 46], rows,
                title="Georeferentie - bronpunten en controles")
     rows = [(nl(r["N"]), nl(r["E_s2"]), nl(r["E_gshhs"]), nl(r["dE"])) for r in gs["rijen"]]
-    y2 = table(bg, 340, y2 - 12, ("N (m)", "E waterlijn S2", "E kust GSHHS", "dE (m)"), [52, 60, 60, 40], rows, rh=6.2,
+    y2 = table(bg, 345, y2 - 12, ("N (m)", "E waterlijn S2", "E kust GSHHS", "dE (m)"), [52, 60, 60, 40], rows, rh=6.2,
                title="Kustlijncontrole: Sentinel-2 tegen onafhankelijke GSHHS-kust (full)")
     lines = [
         f"Gemiddelde dE {nl(gs['gemiddeld_m'], 1)} m, sd {nl(gs['std_m'], 1)} m: geen systematische verschuiving.",
@@ -632,7 +717,7 @@ def sheet_tables(pdf, d, geo):
         "**In Civil 3D nog te doen: drie herkenningspunten tegen Map Aerial",
         "(GEOMAPIMAGE) meten en de afwijking in de maatstaat invullen.",
     ]
-    text_block(bg, y2 - 6, lines, fs=8.4, lh=5.2, x=340)
+    text_block(bg, y2 - 6, lines, fs=8.4, lh=5.2, x=345)
     title_block(bg, d, f"{d.code}-04", "Maatstaat, ankerpunten en georeferentie", "n.v.t.")
     pdf.savefig(f)
     plt.close(f)
@@ -654,25 +739,17 @@ def so_markup(d):
 
 
 def masterplan_inset(bg, y_bottom, width=None, render=False):
-    """Vormreferentie: uitsnede Porto Central-masterplan 2016 p. 9 (SO) of de render (DO) in het rechterpaneel."""
-    path = os.path.join(H.ROOT, "Referentie", "Porto_Central_render.png" if render else "Porto_Central_masterplan_2016_p9_uitsnede.png")
-    if not os.path.exists(path):
-        return y_bottom
-    im = np.asarray(Image.open(path).convert("RGB"))
-    w = width or (PW - PANEL_X - 8)
-    h = w * im.shape[0] / im.shape[1]
-    bg.imshow(im, extent=(PANEL_X + 1, PANEL_X + 1 + w, y_bottom, y_bottom + h), zorder=5)
-    bg.set_xlim(0, PW)
-    bg.set_ylim(0, PH)
-    bg.text(PANEL_X + 1, y_bottom + h + 2, "Referentie: Porto Central render (overgetrokken voor het DO)" if render
-            else "Vormreferentie: Porto Central masterplan 2016, p. 9 (ANTT)", fontsize=7, weight="bold")
-    bg.text(PANEL_X + 1, y_bottom - 2, "Overgenomen: 11/14 dammen | vingers en insteken | 6 containers | 10 graan | 7/8 RoRo\n"
-            "9 tankpark (LNG + centrale) | 18 LNG-steiger.  Weggelaten (niet in opdracht): 2, 3, 5, 12, 1", fontsize=5.8, va="top")
-    return y_bottom + h
+    """Niet meer gebruikt op de plattegronden (rustiger blad); de render staat op DO-05."""
+    return y_bottom
 
 
 def make_pdf(d, path, coast, geo):
     os.makedirs(os.path.dirname(path), exist_ok=True)
+    _BLAD["nr"] = 0
+    _BLAD["van"] = 3 if d.code == "SO" else (4 + bool(d.info.get("render_affine")) + len(d.detail_views)
+                                              + bool(d.info.get("golftoets")) + bool(d.info.get("grondwerk")))
+    if not hasattr(d, "ann"):
+        A.voor_ontwerp(d)
     with PdfPages(path) as pdf:
         sheet_overview(pdf, d, coast, geo)
         if d.code == "SO":
@@ -771,7 +848,7 @@ def sheet_golf(pdf, d):
     import golven
     f, bg = fig_new()
     g = d.info["golftoets"]
-    panels = [((15, 302, 620, 277), 112.5), ((15, 15, 620, 277), 45.0)]
+    panels = [((20, 299, 623, 285), 112.5), ((20, 10, 623, 285), 45.0)]
     levels = [0, 0.1, 0.3, 0.5, 1.0, 1.5, 2.0, 3.5]
     cmap = plt.get_cmap("RdYlGn_r")
     for rect, frm in panels:
@@ -779,7 +856,7 @@ def sheet_golf(pdf, d):
         grid(ax, 1000)
         for X, Y, kd in golven.kd_regios(d, frm, stap=30.0):
             ax.contourf(X, Y, kd * golven.HS_BUITEN, levels=levels, cmap=cmap, alpha=0.7, zorder=25, extend="max")
-        draw_design(ax, d, labels=False, anchors=False, dims=False)
+        draw_design(ax, d, anchors=False)
         az = math.radians(frm + 180)
         x1, y1 = ax.get_xlim()[1], ax.get_ylim()[1]
         sx = x1 - ax.get_xlim()[0]
@@ -788,7 +865,7 @@ def sheet_golf(pdf, d):
                                 fc="white", ec="black", zorder=60))
         ax.text(0.02, 0.96, f"Golven uit {'OZO' if frm > 100 else 'NO'} ({nl(frm, 1)} gr), Hs buiten {nl(golven.HS_BUITEN, 1)} m, T 8 s"
                 f"  -  maatgevend voor {'graan, RoRo en containers' if frm > 100 else 'LNG'}",
-                transform=ax.transAxes, fontsize=11, weight="bold", va="top", color="white", path_effects=HALO)
+                transform=ax.transAxes, fontsize=11, weight="bold", va="top", color=TXT, path_effects=HALO)
         north_scale(ax, 14000, 1000)
     # kleurenschaal
     y = PH - 14
@@ -843,7 +920,7 @@ def sheet_geul(pdf, d):
     z, tr = bodem._load()
     W, S, E, N = bodem.BBOX
     scale = 75000
-    rect = (15, 300, 620, 279)
+    rect = (20, 300, 623, 284)
     ax = f.add_axes([rect[0] / PW, rect[1] / PH, rect[2] / PW, rect[3] / PH])
     sx, sy = rect[2] * scale / 1000, rect[3] * scale / 1000
     rw = d.notes["geul_route"]
@@ -861,27 +938,29 @@ def sheet_geul(pdf, d):
     zl = np.ma.masked_invalid(np.where(z >= 0, 1.0, np.nan))
     ax.imshow(zl, extent=(W, E, S, N), cmap=ListedColormap(["#d9cfae"]), zorder=0, interpolation="nearest")
     grid(ax, 5000)
-    draw_design(ax, d, labels=False, anchors=False, dims=False)
+    draw_design(ax, d, anchors=False)
     n = d.notes
     route = LineString(rw)
+    extra = []
     var = d.info.get("geul_variant_recht")
     if var:
         xy = np.array(var["route"])
         ax.plot(xy[:, 0], xy[:, 1], color="#ff8fab", lw=1.4, ls=(0, (6, 3)), zorder=30)
-        pl = xy[0] + 0.55 * (xy[-1] - xy[0])
-        ax.text(pl[0], pl[1] + 600, f"afgevallen variant rechtdoor: {nl(var['lengte'] / 1000)} km, {nl(var['volume'] / 1e6, 1)} mln m3",
-                fontsize=7.5, color="#ff8fab", ha="center", va="bottom", rotation=math.degrees(math.atan2(*(xy[-1] - xy[0])[::-1])),
-                path_effects=HALO, zorder=60, clip_on=True)
+        extra.append((f"afgevallen variant rechtdoor:\n{nl(var['lengte'] / 1000)} km, {nl(var['volume'] / 1e6, 1)} mln m3",
+                      LineString(var["route"]), "T18", 3))
     for l, t in ((0, "havenmond"), (GEUL_RECHT, "begin bocht\nR 3.400 m"),
                  (n["geul_15"], f"natuurlijk -15 m\n({nl(n['geul_15'] / 1000, 1)} km)"),
                  (n["geul_lengte"], f"natuurlijk -18,2 m\n= geuleinde ({nl(n['geul_lengte'] / 1000, 1)} km)")):
         q = route.interpolate(l)
         p = (q.x, q.y)
-        ax.plot(*p, "o", ms=6, mfc="#ffd60a", mec="black", zorder=60)
-        ax.text(p[0], p[1] - 900, t, fontsize=7.5, color="white", ha="center", va="top", path_effects=HALO, zorder=60)
+        ax.plot(*p, "o", ms=5, mfc="#ffd60a", mec="black", zorder=60)
+        extra.append((t, Point(*p), "T18", 2))
     ax.text(0.02, 0.96, "Bestaande bodem t.o.v. MLWS (GEBCO 2026 + Copernicus DEM) met toegangsgeul",
-            transform=ax.transAxes, fontsize=11, weight="bold", va="top", color="white", path_effects=HALO)
+            transform=ax.transAxes, fontsize=11, weight="bold", va="top", color=TXT, path_effects=HALO)
     north_scale(ax, scale, 5000)
+    from shapely.geometry import box as sbox
+    teken_ann(f, A.annoteer(d, (cx, cy), scale, rect, "geul", extra=extra, dims=False,
+                            gereserveerd=[sbox(rect[0], rect[1] + rect[3] - 16, rect[0] + 300, rect[1] + rect[3])]))
     cb = f.add_axes([400 / PW, 312 / PH, 200 / PW, 5 / PH])
     f.colorbar(im, cax=cb, orientation="horizontal").set_label("diepte t.o.v. MLWS (m)", fontsize=7)
     cb.tick_params(labelsize=6.5)

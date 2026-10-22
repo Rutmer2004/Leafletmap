@@ -6,9 +6,12 @@ import ezdxf
 from ezdxf import units
 from ezdxf.enums import TextEntityAlignment
 
+import annotatie as Ann
 import haven as H
 
-TXT = 30.0  # teksthoogte in m (= 3 mm op 1:10.000)
+TXT = 30.0  # teksthoogte in m voor ankerpuntcoördinaten in modelspace
+TEMPLATE = os.path.join(H.ROOT, "Referentie", "NHL_template_onderdelen.dxf")
+STIJL = "NLCS-ISO"
 
 
 def _rings(g):
@@ -21,6 +24,7 @@ def _rings(g):
 
 def write_dxf(d, path, coast):
     doc = ezdxf.new("R2018", setup=True)
+    _template(doc)
     doc.units = units.M
     doc.header["$INSUNITS"] = 6
     doc.header["$MEASUREMENT"] = 1
@@ -78,46 +82,15 @@ def write_dxf(d, path, coast):
             msp.add_circle((g.x, g.y), 25, dxfattribs=at)
             msp.add_line((g.x - 40, g.y), (g.x + 40, g.y), dxfattribs=at)
             msp.add_line((g.x, g.y - 40), (g.x, g.y + 40), dxfattribs=at)
-        if it["label"]:
-            c = g.representative_point() if g.geom_type != "LineString" else g.interpolate(0.5, normalized=True)
-            ang = 0.0
-            if g.geom_type == "LineString":
-                (x0, y0), (x1, y1) = g.coords[0], g.coords[-1]
-                ang = math.degrees(math.atan2(y1 - y0, x1 - x0))
-                if ang > 90 or ang < -90:
-                    ang += 180
-            if g.geom_type == "Point":
-                c = type(g)(g.x + 50, g.y + 50)
-            msp.add_text(it["label"], height=TXT, rotation=ang, dxfattribs={"layer": "HV-TEKST"}) \
-                .set_placement((c.x, c.y), align=TextEntityAlignment.MIDDLE_CENTER if g.geom_type != "Point" else TextEntityAlignment.BOTTOM_LEFT)
 
-    # detailteksten (DO-06 t/m DO-08)
-    if any(it.get("dlabel") for it in d.items):
-        doc.layers.add("HV-D-TEKST", color=7)
-    for it in d.items:
-        if it.get("dlabel"):
-            g = it["geom"]
-            c = g.representative_point() if g.geom_type != "LineString" else g.interpolate(0.5, normalized=True)
-            msp.add_text(it["dlabel"], height=8, dxfattribs={"layer": "HV-D-TEKST"}) \
-                .set_placement((c.x, c.y), align=TextEntityAlignment.MIDDLE_CENTER)
-
-    # maatvoering als echte DIMENSION-entiteiten
-    ds = doc.dimstyles.new("HV_10000")
-    ds.dxf.dimtxt = 25
-    ds.dxf.dimasz = 25
-    ds.dxf.dimexe = 10
-    ds.dxf.dimexo = 10
-    ds.dxf.dimgap = 8
-    ds.dxf.dimdec = 0
-    ds.dxf.dimtad = 1
-    for p1, p2, off, text in d.dims:
-        dim = msp.add_aligned_dim(p1=p1, p2=p2, distance=off, dimstyle="HV_10000", text=text,
-                                  dxfattribs={"layer": "HV-MAAT"})
-        dim.render()
+    # teksten en maatvoering: dezelfde plaatsing als op de PDF-bladen, per blad op een eigen laag
+    _teksten_model(doc, msp, d)
 
     # ankerpunten met coördinaat
+    doc.layers.add("HV-ANKERPUNT-TEKST", color=1).description = "Ankerpuntcoördinaten (alleen modelspace)"
     for k, a in d.anchor.items():
-        msp.add_text(f"{k} E {a['E']:.1f}  N {a['N']:.1f}", height=20, dxfattribs={"layer": "HV-ANKERPUNT"}) \
+        msp.add_text(f"{k} E {a['E']:.1f}  N {a['N']:.1f}", height=20,
+                     dxfattribs={"layer": "HV-ANKERPUNT-TEKST", "style": STIJL}) \
             .set_placement((a["E"] + 50, a["N"] - 40), align=TextEntityAlignment.TOP_LEFT)
 
     # coördinatenraster 1 km
@@ -127,52 +100,158 @@ def write_dxf(d, path, coast):
         msp.add_line((286000, y), (318000, y), dxfattribs={"layer": "HV-RASTER"})
     doc.layers.get("HV-RASTER").off()
 
-    _layout(doc, d)
+    _layout(doc, d, "02", "Havenindeling", d.center, d.scale)
     for blad, naam, center, scale in d.detail_views:
-        _layout(doc, d, name=f"{d.code}-{blad} {naam} 1-{scale}".replace(",", ""), center=center, scale=scale,
-                blad=f"{d.code}-{blad}", naam=naam)
+        _layout(doc, d, blad, naam, center, scale)
+    if "Layout1" in doc.layouts.names() and len(doc.layouts) > 2:
+        doc.layouts.delete("Layout1")
     doc.set_modelspace_vport(height=7000, center=H.P(-200, -100))
+    _ongebruikte_lagen_weg(doc)
     doc.saveas(path)
 
 
-def _layout(doc, d, name=None, center=None, scale=None, blad=None, naam="Havenindeling"):
-    """Papieren A1-blad met viewport, kader, titelblok en legenda."""
-    scale = scale or d.scale
-    lay = doc.layouts.new(name or f"{d.code}-02 A1 1-{scale}")
+def _ongebruikte_lagen_weg(doc):
+    """Template-lagen die niet gebruikt worden verwijderen (houdt de lagenlijst overzichtelijk)."""
+    gebruikt = {"0", "Defpoints"}
+    for lay in doc.layouts:
+        for e in lay:
+            gebruikt.add(e.dxf.get("layer", "0"))
+            for a in getattr(e, "attribs", []):
+                gebruikt.add(a.dxf.get("layer", "0"))
+    for b in doc.blocks:
+        for e in b:
+            gebruikt.add(e.dxf.get("layer", "0"))
+    gebruikt |= set(H.LAYERS)
+    for l in list(doc.layers):
+        if l.dxf.name not in gebruikt and not l.dxf.name.startswith(("HV-", "X-XX-AL-T")):
+            doc.layers.remove(l.dxf.name)
+
+
+def _template(doc):
+    """Blokken (A1-tekenblad, titelblok, wijzigingsblok, noordpijl), tekststijlen en lagen uit het NHL-template."""
+    from ezdxf.addons import Importer
+    src = ezdxf.readfile(TEMPLATE)
+    imp = Importer(src, doc)
+    imp.import_blocks(["SAL-TEKENBLAD_A1-SO", "TITELBLOK_BUREAUSCHMIDT", "WIJZIGINGSBLOK_BUREAUSCHMIDT", "Noordpijl BS 7.0"])
+    imp.import_tables("styles", ["NLCS-ISO", "BS"])
+    imp.import_tables("layers", ["X-XX-AL-T18", "X-XX-AL-T25", "X-XX-AL-T35", "X-XX-AL-M", "X-XX-AL-VERWIJZING-S",
+                                 "X-XX-AL-TEKENBLAD-S", "X-XX-AL-TEKENBLAD_KADER-G", "X-XX-AL-TEKENBLAD_TITELBLOK-G",
+                                 "X-XX-AL-TEKENBLAD_VIEWPORT-G", "X-XX-AL-TEKENBLAD_LEGENDA-S",
+                                 "X-XX-AL-TEKENBLAD_SCHAALBALK-S", "X-XX-AL-ORIENTATIE-G"])
+    imp.finalize()
+    std = doc.styles.get("Standard").dxf.handle
+    for _, ml in doc.mleader_styles:
+        ml.dxf.text_style_handle = std
+
+
+def _tekstlaag(doc, blad):
+    naam = f"HV-TEKST-{blad}"
+    if naam not in doc.layers:
+        doc.layers.add(naam, color=7).description = f"Teksten en maatvoering voor blad {blad} (geplaatst zonder overlap)"
+    return naam
+
+
+def _teksten_model(doc, msp, d):
+    """Teksten, verwijslijnen en maatvoering uit annotatie.voor_ontwerp() in modelspace (wereldcoördinaten)."""
+    ann = getattr(d, "ann", None) or Ann.voor_ontwerp(d)
+    for blad, a in ann.items():
+        lay = _tekstlaag(doc, blad)
+        pl, f = a["plaatser"], a["scale"] / 1000.0
+        for m in a["maat"]:
+            P = [pl.w(*q) for q in (m["a"], m["A"], m["b"], m["B"])]
+            n, sg = m["n"], m["sg"]
+            for p0, p1 in ((P[0], P[1]), (P[2], P[3])):
+                e = (p1[0] + n[0] * 1.5 * sg * f, p1[1] + n[1] * 1.5 * sg * f)
+                s0 = (p0[0] + n[0] * 1.0 * sg * f, p0[1] + n[1] * 1.0 * sg * f)
+                msp.add_line(s0, e, dxfattribs={"layer": lay})
+            msp.add_line(P[1], P[3], dxfattribs={"layer": lay})
+            ux, uy = (P[3][0] - P[1][0]), (P[3][1] - P[1][1])
+            L = math.hypot(ux, uy)
+            ux, uy = ux / L, uy / L
+            k = 2.0 * f
+            for q, sgn in ((P[1], 1), (P[3], -1)):   # pijlpunten
+                tip = q
+                base = (q[0] + ux * k * sgn, q[1] + uy * k * sgn)
+                msp.add_solid([tip, (base[0] - uy * k * 0.25, base[1] + ux * k * 0.25),
+                               (base[0] + uy * k * 0.25, base[1] - ux * k * 0.25)], dxfattribs={"layer": lay})
+            c = pl.w(*m["pos"])
+            msp.add_text(m["tekst"], height=m["h"] * f, rotation=m["rot"], dxfattribs={"layer": lay, "style": STIJL}) \
+                .set_placement(c, align=TextEntityAlignment.MIDDLE_CENTER)
+        for p in a["labels"]:
+            c = pl.w(p.x, p.y)
+            if "\n" in p.tekst:
+                mt = msp.add_mtext(p.tekst.replace("\n", "\\P"), dxfattribs={"layer": lay, "style": STIJL,
+                                                                            "char_height": p.h * f})
+                mt.set_location(c, attachment_point=5)
+            else:
+                msp.add_text(p.tekst, height=p.h * f, dxfattribs={"layer": lay, "style": STIJL}) \
+                    .set_placement(c, align=TextEntityAlignment.MIDDLE_CENTER)
+            if p.verwijs:
+                q0, q1 = pl.w(*p.verwijs[0]), pl.w(*p.verwijs[1])
+                msp.add_line(q0, q1, dxfattribs={"layer": lay})
+                msp.add_circle(q0, 0.5 * f, dxfattribs={"layer": lay})
+
+
+def _layout(doc, d, blad, naam, center, scale):
+    """A1-blad volgens het NHL-template: kader, titelblok, wijzigingsblok, viewport, legenda, noordpijl, schaalstok."""
+    import sheets as S
+    van = 3 if d.code == "SO" else 10
+    lay = doc.layouts.new(f"{d.code}-{blad} {naam} 1-{scale}".replace(",", ""))
     lay.page_setup(size=(841, 594), margins=(0, 0, 0, 0), units="mm")
-    cx, cy = center or d.center or H.P(-250, -150)
-    lay.add_viewport(center=(325, 297), size=(620, 574), view_center_point=(cx, cy), view_height=574 * scale / 1000)
-    lay.add_lwpolyline([(10, 10), (831, 10), (831, 584), (10, 584)], close=True)
-    lay.add_lwpolyline([(640, 10), (640, 584)])
-    y = 570
-    title = "SCHETSONTWERP (SO)" if d.code == "SO" else "DEFINITIEF ONTWERP (DO)"
-    for t, h in [("Havenontwerp Groep 1 - Porto Central, Presidente Kennedy (ES)", 6), (title, 8),
-                 (f"Blad {blad or d.code + '-02'}  {naam}  |  versie {d.version}  |  22-10-2026", 4),
-                 (f"Schaal 1:{scale:,} (A1)  |".replace(",", ".") + "  noordpijl = grid-noord (verschil met ware noord 0,70 gr)", 3.5),
-                 ("Stelsel: SIRGAS 2000 / UTM zone 24S, EPSG:31984, eenheid m", 3.5),
-                 ("Hoogte/diepte: m t.o.v. MLWS (voorlopig; koppeling MLWS-DHN nog te verifiëren)", 3.5),
-                 ("Kaartbron: Copernicus Sentinel-2 L2A, opname 03-07-2026, 10 m", 3.5),
-                 ("Bathymetrie: GEBCO 2026 + Copernicus DEM (Ondergrond/bestaand_bodem_MLWS_EPSG31984.tif); geen peiling", 3.5),
-                 ("Online ondergrond toevoegen: GEOMAPIMAGE (Map Aerial)", 3.5)]:
-        lay.add_text(t, height=h).set_placement((648, y), align=TextEntityAlignment.TOP_LEFT)
-        y -= h + 5
-    y -= 6
-    lay.add_text("LEGENDA", height=5).set_placement((648, y), align=TextEntityAlignment.TOP_LEFT)
-    y -= 11
-    for name, (aci, _, fill, desc) in H.LAYERS.items():
-        if name in ("HV-ONDERGROND", "HV-TEKST", "HV-RASTER", "HV-MAAT"):
-            continue
-        lay.add_lwpolyline([(648, y), (662, y), (662, y - 6), (648, y - 6)], close=True, dxfattribs={"color": aci})
-        if fill:
-            h = lay.add_hatch(color=aci)
-            h.paths.add_polyline_path([(648, y), (662, y), (662, y - 6), (648, y - 6)])
-        lay.add_text(desc, height=3.2).set_placement((666, y - 3), align=TextEntityAlignment.MIDDLE_LEFT)
-        y -= 9
-    # noordpijl
-    lay.add_lwpolyline([(600, 540), (606, 520), (600, 525), (594, 520)], close=True)
-    lay.add_text("N", height=8).set_placement((600, 545), align=TextEntityAlignment.BOTTOM_CENTER)
-    # schaalstok 0-1000 m
+    for e in list(lay.query("VIEWPORT"))[1:]:
+        lay.delete_entity(e)
+    lay.add_blockref("SAL-TEKENBLAD_A1-SO", (0, 0), dxfattribs={"layer": "X-XX-AL-TEKENBLAD-S"})
+    schaal = f"1:{scale:,}".replace(",", ".")
+    tb = lay.add_blockref("TITELBLOK_BUREAUSCHMIDT", (831, 10), dxfattribs={"layer": "X-XX-AL-TEKENBLAD-S"})
+    tb.add_auto_attribs(S.titelblok_waarden(d, f"{d.code}-{blad}", naam, schaal, int(blad), van))
+    wb = lay.add_blockref("WIJZIGINGSBLOK_BUREAUSCHMIDT", (643, 95.8), dxfattribs={"layer": "X-XX-AL-TEKENBLAD-S"})
+    wb.add_auto_attribs(S.wijziging_waarden(d))
+    x, y, b, h = Ann.MAP
+    vp = lay.add_viewport(center=(x + b / 2, y + h / 2), size=(b, h), view_center_point=center,
+                          view_height=h * scale / 1000, dxfattribs={"layer": "X-XX-AL-TEKENBLAD_VIEWPORT-G"})
+    vp.frozen_layers = [l.dxf.name for l in doc.layers
+                        if (l.dxf.name.startswith("HV-TEKST-") and l.dxf.name != f"HV-TEKST-{blad}")
+                        or l.dxf.name in ("HV-ANKERPUNT-TEKST", "HV-RASTER", "HV-TEKST", "HV-MAAT", "HV-D-TEKST")
+                        or (blad == "02" and l.dxf.name.startswith("HV-D-"))]
+    # noordpijl en schaalstok
+    nb = Ann.noordvak(Ann.MAP).bounds
+    lay.add_blockref("Noordpijl BS 7.0", ((nb[0] + nb[2]) / 2, nb[1] + 14), dxfattribs={"layer": "X-XX-AL-ORIENTATIE-G"})
+    sb = Ann.schaalvak(Ann.MAP).bounds
+    bar_m = 1000 if scale >= 10000 else 500
+    blen = bar_m / scale * 1000
+    bx, by = sb[2] - 6 - blen, sb[1] + 8
     for i in range(5):
-        lay.add_lwpolyline([(30 + i * 20, 25), (50 + i * 20, 25), (50 + i * 20, 29), (30 + i * 20, 29)], close=True)
-    lay.add_text("0", height=3).set_placement((30, 31), align=TextEntityAlignment.BOTTOM_CENTER)
-    lay.add_text(f"{scale // 10:,} m".replace(",", "."), height=3).set_placement((130, 31), align=TextEntityAlignment.BOTTOM_CENTER)
+        pts = [(bx + i * blen / 5, by), (bx + (i + 1) * blen / 5, by), (bx + (i + 1) * blen / 5, by + 2), (bx + i * blen / 5, by + 2)]
+        lay.add_lwpolyline(pts, close=True, dxfattribs={"layer": "X-XX-AL-TEKENBLAD_SCHAALBALK-S"})
+        if i % 2 == 0:
+            lay.add_solid([pts[0], pts[1], pts[3], pts[2]], dxfattribs={"layer": "X-XX-AL-TEKENBLAD_SCHAALBALK-S"})
+    for t, px, py, al in (("0", bx, by + 3, TextEntityAlignment.BOTTOM_CENTER),
+                          (f"{bar_m:,} m".replace(",", "."), bx + blen, by + 3, TextEntityAlignment.BOTTOM_CENTER),
+                          (f"schaal {schaal} (A1)", bx + blen / 2, by - 1.5, TextEntityAlignment.TOP_CENTER)):
+        lay.add_text(t, height=1.8, dxfattribs={"layer": "X-XX-AL-T18", "style": STIJL}).set_placement((px, py), align=al)
+    # legenda in de rechterkolom
+    yy = 578.0
+    lay.add_text("LEGENDA", height=3.5, dxfattribs={"layer": "X-XX-AL-T35", "style": STIJL}) \
+        .set_placement((647, yy), align=TextEntityAlignment.TOP_LEFT)
+    yy -= 9
+    used = {i["layer"] for i in d.items if blad != "02" or not i["layer"].startswith("HV-D-")}
+    for name, (aci, _, fill, desc) in H.LAYERS.items():
+        if name not in used or name in ("HV-ONDERGROND", "HV-TEKST", "HV-RASTER", "HV-MAAT", "HV-GEUL-AS"):
+            continue
+        box_ = [(648, yy), (660, yy), (660, yy - 4), (648, yy - 4)]
+        lay.add_lwpolyline(box_, close=True, dxfattribs={"color": aci, "layer": "X-XX-AL-TEKENBLAD_LEGENDA-S"})
+        if fill:
+            hh = lay.add_hatch(color=aci, dxfattribs={"layer": "X-XX-AL-TEKENBLAD_LEGENDA-S"})
+            hh.paths.add_polyline_path(box_)
+        lay.add_text(desc, height=1.8, dxfattribs={"layer": "X-XX-AL-TEKENBLAD_LEGENDA-S", "style": STIJL}) \
+            .set_placement((664, yy - 2), align=TextEntityAlignment.MIDDLE_LEFT)
+        yy -= 5.6
+    for i, t in enumerate(["Stelsel: SIRGAS 2000 / UTM zone 24S (EPSG:31984), eenheid m",
+                           "Hoogte: m t.o.v. MLWS (voorlopig; MLWS = MSL - 0,7 m)",
+                           "Luchtfoto: Copernicus Sentinel-2 L2A, 03-07-2026 (Ondergrond/)",
+                           "Bathymetrie: GEBCO 2026 + Copernicus DEM; geen peiling",
+                           "Online ondergrond toevoegen: GEOMAPIMAGE (Map Aerial)"]):
+        lay.add_text(t, height=1.8, dxfattribs={"layer": "X-XX-AL-T18", "style": STIJL}) \
+            .set_placement((647, 166 - i * 4.5), align=TextEntityAlignment.TOP_LEFT)
+
+

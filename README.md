@@ -20,6 +20,15 @@ Porto Central-masterplan als vormreferentie.
 | `Onderbouwing/Toelichting_SO_DO.docx` | Toelichting: ondergrond, ligging, SO, bespreking en besluitenlijst, DO, open punten, werkwijze in Civil 3D |
 | `webkaart/index.html` | Interactieve Leaflet-kaart met SO en DO op luchtfoto (dubbelklikken of via GitHub Pages) |
 
+## Tekenbladen (NHL-template)
+
+Alle bladen (PDF en de DXF-layouts) gebruiken het A1-tekenblad, titelblok, wijzigingsblok en de noordpijl uit het
+schooltemplate `NHL-3D template.dwt` (onderdelen in `Referentie/NHL_template_onderdelen.dxf`, tekststijl NLCS-ISO).
+Teksten worden automatisch geplaatst zonder overlap (`src/labels.py`, `src/annotatie.py`): horizontaal of leesbaar
+langs de maatlijn (nooit op de kop), met een verwijslijn als er in het vlak geen ruimte is. Teksthoogtes volgens NLCS
+(1,8 / 2,5 / 3,5 mm op papier). In de DXF staan de teksten per blad op een eigen laag (`HV-TEKST-02`, `-06`, `-07`,
+`-08`); in elke layout zijn de teksten van de andere bladen bevroren.
+
 ## DWG maken in Civil 3D
 
 1. Kopieer de map `CAD` inclusief `Ondergrond` (de luchtfoto is met een relatief pad gekoppeld).

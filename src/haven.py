@@ -325,7 +325,7 @@ def build_do_render(coast=None, so=False):
     phi, err = fit_render_rotation(coast)
     A = render_affine(phi)
     d = Design("SO" if so else "DO", tf=lambda g: affinity.affine_transform(g, A))
-    d.version = "4.0" if so else "8.0"
+    d.version = "4.1" if so else "8.1"
     d.info = dict(render_schaal_m_per_px=RENDER_S, render_draaiing_graden=phi, render_kustfit_gem_afwijking_m=err,
                   render_affine=A, render_anker=RENDER_ANCHOR)
     s = RENDER_S
@@ -601,7 +601,7 @@ def build_do_render(coast=None, so=False):
         d.dim(tug, M, 260, "1.500 m")
         d.dim((hn[0] + nv[0] * bw, hn[1] + nv[1] * bw), (hs[0] - nv[0] * bw, hs[1] - nv[1] * bw), 300, "350 m vrij")
         d.dim((TB[0] - R_ZW / s, TB[1]), (TB[0] + R_ZW / s, TB[1]), 0.1, f"D {R_ZW * 2:.0f} m")
-    d.dim(M, T, -380, f"{nl0(L * s)} m = {L * s / LOA:.1f} LOA".replace(".", ","))
+    d.dim(M, T, -380, f"stopweg {nl0(L * s)} m = " + f"{L * s / LOA:.1f}".replace(".", ",") + " LOA")
 
     pts = [("A1", "Referentiepunt kust (render 812,5 / 275)", RENDER_ANCHOR[0]),
            ("A2", "Middelpunt vrije draaikom", T), ("A3", "Midden havenmond", M),
@@ -863,7 +863,7 @@ def add_terminal_details(d, f6, roro, j0, j1, b0, b1, jt):
     d.detail_views = [
         ("06", "Containerterminal", d.P(706, 368.5), 5000),
         ("07", "Graan, RoRo en havendienst", d.P(700, 266), 6000),
-        ("08", "LNG-terminal en centrale", d.P(682, 462), 8000),
+        ("08", "LNG-terminal en centrale", d.P(700, 438), 8000),
     ]
     DET.clear()
     DET.update(det)
@@ -1018,6 +1018,11 @@ def main():
             dam_steen_per_km=2 * 1000 * (10.5 * (10 + 1.5 * 10.5)))   # 2 dammen, h ca. 10,5 m (kruin +6), taluds 1:1,5
     do.info["golftoets"] = golven.toets(do)
     do.info["geul_15"] = do.notes["geul_15"]
+    import annotatie
+    for d in (so, do):
+        annotatie.voor_ontwerp(d)
+        if d.ann["02"]["vervallen"]:
+            print(d.code, "teksten vervallen op blad 02:", d.ann["02"]["vervallen"])
     geo = georef_checks(coast)
     # GSHHS-vergelijking (onafhankelijke kustlijn)
     diffs = []
