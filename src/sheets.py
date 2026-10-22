@@ -118,10 +118,10 @@ def poly_xy(g):
 
 
 def draw_design(ax, d, labels=True, phase=None, fs=6.5, anchors=True, dims=True, detail=False):
-    order = ["HV-VOORHAVEN", "HV-BAGGER", "HV-RESERVE", "HV-CONTAINER", "HV-GRAAN", "HV-RORO", "HV-HAVENDIENST", "HV-CENTRALE",
+    order = ["HV-DIEPTELIJN", "HV-VOORHAVEN", "HV-BAGGER", "HV-RESERVE", "HV-CONTAINER", "HV-GRAAN", "HV-RORO", "HV-HAVENDIENST", "HV-CENTRALE",
              "HV-LNG", "HV-D-VERKEER", "HV-D-PARKEER", "HV-D-STACK", "HV-D-REEFER", "HV-D-LEEG", "HV-D-OPSLAG",
              "HV-D-INSTALLATIE", "HV-D-GEBOUW", "HV-GEUL", "HV-GOLFBREKER", "HV-SCHIP", "HV-DRAAIKOM", "HV-KADE",
-             "HV-D-KRAAN", "HV-WEG", "HV-SPOOR", "HV-LEIDING", "HV-FASEGRENS", "HV-GEUL-AS", "HV-SLEEPBOOT", "HV-ANKERPUNT"]
+             "HV-D-KRAAN", "HV-WEG", "HV-SPOOR", "HV-LEIDING", "HV-VEILIGHEID", "HV-FASEGRENS", "HV-GEUL-AS", "HV-SLEEPBOOT", "HV-ANKERPUNT"]
     ls_map = {"dashed": (0, (5, 3)), "dotted": (0, (1, 2)), "dashdot": (0, (8, 3, 2, 3))}
     for z, lay in enumerate(order):
         aci, col, fill, _ = H.LAYERS[lay]
@@ -137,6 +137,19 @@ def draw_design(ax, d, labels=True, phase=None, fs=6.5, anchors=True, dims=True,
                             path_effects=[pe.withStroke(linewidth=2, foreground="red")], zorder=40, clip_on=True)
                 continue
             lsty = ls_map.get(it.get("style"), "-")
+            if lay == "HV-DIEPTELIJN":
+                xy = np.array(g.coords)
+                ax.plot(xy[:, 0], xy[:, 1], color=col, lw=0.7, alpha=0.9, zorder=1.5)
+                if labels:
+                    x0, x1 = ax.get_xlim()
+                    y0, y1 = ax.get_ylim()
+                    stap = max(2000.0, (x1 - x0) / 4)
+                    for t in np.arange(stap / 2, g.length, stap):
+                        c = g.interpolate(t)
+                        if x0 < c.x < x1 and y0 < c.y < y1:
+                            ax.text(c.x, c.y, it["label"], fontsize=fs * 0.85, color=col, ha="center", va="center",
+                                    path_effects=HALO, zorder=1.6, clip_on=True)
+                continue
             if g.geom_type in ("Polygon", "MultiPolygon"):
                 for xy in poly_xy(g):
                     if lay == "HV-BAGGER" and it.get("style") == "dashed" and not future:
@@ -163,7 +176,7 @@ def draw_design(ax, d, labels=True, phase=None, fs=6.5, anchors=True, dims=True,
             elif g.geom_type == "LineString":
                 xy = np.array(g.coords)
                 lw = {"HV-KADE": 2.2, "HV-WEG": 1.8, "HV-SPOOR": 1.2, "HV-FASEGRENS": 1.4, "HV-GEUL-AS": 0.6,
-                      "HV-D-KRAAN": 0.7, "HV-D-INSTALLATIE": 0.9}.get(lay, 1.0)
+                      "HV-D-KRAAN": 0.7, "HV-D-INSTALLATIE": 0.9, "HV-VEILIGHEID": 1.3}.get(lay, 1.0)
                 if lay == "HV-SPOOR" and detail is False and it.get("dlabel"):
                     lw = 0.6
                 if lay == "HV-SPOOR":
@@ -226,8 +239,10 @@ def legend(bg, y_top, d, fs=7.2):
         if name in skip or name not in used:
             continue
         x = PANEL_X + 3
-        if name in ("HV-KADE", "HV-WEG", "HV-LEIDING", "HV-FASEGRENS", "HV-KUSTLIJN", "HV-ZOEKGEBIED"):
-            ls = {"HV-LEIDING": (0, (5, 3)), "HV-FASEGRENS": (0, (6, 2)), "HV-ZOEKGEBIED": (0, (6, 3))}.get(name, "-")
+        if name in ("HV-KADE", "HV-WEG", "HV-LEIDING", "HV-FASEGRENS", "HV-KUSTLIJN", "HV-ZOEKGEBIED", "HV-VEILIGHEID",
+                    "HV-DIEPTELIJN"):
+            ls = {"HV-LEIDING": (0, (5, 3)), "HV-FASEGRENS": (0, (6, 2)), "HV-ZOEKGEBIED": (0, (6, 3)),
+                  "HV-VEILIGHEID": (0, (5, 3))}.get(name, "-")
             bg.add_line(Line2D([x, x + 12], [y - 2, y - 2], color=col if name != "HV-WEG" else "#888", lw=2, ls=ls))
         elif name == "HV-SPOOR":
             bg.add_line(Line2D([x, x + 12], [y - 2, y - 2], color="black", lw=1.4, ls=(0, (3, 3))))
@@ -260,7 +275,8 @@ def title_block(bg, d, blad, naam, schaal, extra=None):
         ("Kaartbron", "Copernicus Sentinel-2 L2A (ESA), 03-07-2026, 10 m"),
         ("", "tegels 24KTB/24KUB, AWS Open Data COG; geraadpleegd " + DATE),
         ("Kustlijn", "waterlijn 03-07-2026 uit NDWI (geen MLWS-lijn)"),
-        ("Peildatum", "geen peiling ingelezen; bathymetrie en peildatum nog toe te voegen"),
+        ("Bathymetrie", "GEBCO 2026 (ca. 450 m) + Copernicus DEM 30 m; MSL->MLWS +0,7 m (aanname)"),
+        ("", "geen lodingen: peiling (multibeam) nodig vóór uitvoering"),
     ]
     if extra:
         rows += extra
@@ -380,6 +396,27 @@ def sheet_layout(pdf, d, phase_note=None, markup=None, blad="02", naam="Havenind
             f"LNG-zone {nl(m['lng_zone_ha'], 1)} ha; centrale (reservering) {nl(m['centrale_ha'], 1)} ha",
             f"Vrije breedte binnenbekken {nl(m['vrije_breedte_binnenbekken_m'])} m",
         ]
+        if d.code == "DO":
+            g = d.info.get("golftoets", {})
+            ok = all(v["voldoet"] for k, v in g.items() if not k.startswith("Variant"))
+            lines = [
+                "**Hoofdmaten (gemeten in tekening)",
+                f"Geul 220 m breed, {nl(m['geullengte_buiten_mond_m'])} m buiten de mond (GEBCO: pas",
+                f"   daar natuurlijk -18,2 m; -15 m op {nl(d.notes['geul_15'])} m), zie DO-10",
+                "Dieptezones (diepgang + 3,7 m): containers/graan/geul -18,20;",
+                "   LNG-vaarweg en -ligplaats -16,20; RoRo -13,70 m MLWS",
+                f"Havenmond vrij {nl(m['havenmond_vrij_m'])} m; stopweg {nl(m['stopweg_mond_draaikom_m'])} m = {nl(m['stopweg_in_LOA'], 1)} LOA",
+                f"Draaikom voorhaven D 720 m, vrij van schepen {nl(m['draaikom_vrij_van_schepen_m'])} m",
+                f"Zwaaiplaats binnenhaven D {nl(m['zwaaiplaats_D_m'])} m (1,5 LOA, met sleepboten),",
+                f"   {nl(m['zwaaiplaats_vrij_van_schepen_m'])} m vrij van schepen, {nl(m['zwaaiplaats_vrij_van_land_m'])} m van de oever",
+                "Containerkade westzijde vinger 6 (in de insteek, beschut):",
+                f"   {nl(m['containerkade_m'][1])} / {nl(m['containerkade_m'][2])} / {nl(m['containerkade_m'][3])} m; terrein "
+                f"{nl(m['container_ha'][1], 1)} / {nl(m['container_ha'][2], 1)} / {nl(m['container_ha'][3], 1)} ha",
+                f"Graan {nl(m['graan_ha'], 1)} ha, RoRo {nl(m['roro_ha'], 1)} ha, kades 300 m",
+                f"LNG-zone {nl(m['lng_zone_ha'], 1)} ha; steiger achter de zuidelijke dam",
+                "   veiligheidszone 250 m, nautische controlezone 500 m",
+                f"Golftoets: {'alle ligplaatsen voldoen' if ok else 'niet alle ligplaatsen voldoen'} (zie DO-09)",
+            ]
         if phase_note:
             lines += phase_note
         y = text_block(bg, y - 3, lines, fs=6.3, lh=3.8)
@@ -409,6 +446,7 @@ def detail_lines(d, blad):
         sl = t["teu_grondslots_per_fase"]
         return ["**Overslagketen containers",
                 "schip -> STS-kraan -> terminaltrekker -> RTG-stack",
+                "Kade aan de westzijde van vinger 6 (insteek): Hs < 0,1 m",
                 "   -> vrachtauto (gate) of trein (RMG-railterminal)",
                 f"Kade: 5 STS x 30 box/u = {nl(o['kade_boxen_per_uur_per_schip'])} box/u per schip; apron 60 m",
                 f"STS-kranen F1/F2/F3: {t['sts_per_fase'][1]} / {t['sts_per_fase'][2]} / {t['sts_per_fase'][3]} (6 / 12 / 20)",
@@ -438,15 +476,21 @@ def detail_lines(d, blad):
                 f"Parkeervakken ca. {nl(t['roro_auto_capaciteit'])} auto's (piek 7.479)",
                 f"Autotransporters (8 auto's): ca. {nl(o['roro_transporters_per_dag'])} per piekdag",
                 "Havendienst: VTS, loodsen, 3 sleepboten, brandweer"]
+    km = nl(t.get("lng_leiding_m", 0) / 1000, 1)
     return ["**LNG: schip -> laadarmen -> cryogene leiding",
             "   -> tanks -> hervergassing -> centrale / gasnet",
             f"Lossen 156.600 m3 / 10.000 m3/u + 8 u = {nl(o['lng_lostijd_uur'], 1)} u per call",
-            "3 laadarmen (2 vloeistof, 1 dampretour); losleiding",
-            "   en dampretour langs de zuidelijke dam (ca. 2 km)",
+            "Steiger achter de zuidelijke dam (Hs 0,9 m < 1,0 m);",
+            "   ligplaats -16,20 m MLWS (diepgang 12,5 + 3,7 m)",
+            f"3 laadarmen; losleiding + dampretour ca. {km} km",
+            "   (tanks oostelijk in de zone geplaatst)",
             "Tanks 3 x 180.000 m3 in tankput, ruimte 4e tank",
+            "**Veiligheid (indicatief, QRA volgt)",
+            "250 m veiligheidszone rond schip/steiger en tanks;",
+            "   500 m nautische controlezone; geen andere",
+            "   schepen of gebouwen binnen de 250 m-zones",
             f"Send-out gemiddeld {nl(o['lng_sendout_m3_per_uur'])} m3 LNG/u; hervergassing 4 x 33%",
             "Fakkel, BOG-compressor, meetstation, controlekamer",
-            "   (veiligheidsafstanden volgen uit de QRA)",
             f"Centrale: 4 STEG-eenheden ca. 565 MW = {nl(t['centrale_eenheden_mw'])} MW",
             "   (rekenvoorbeeld 2.256 MW), hoogspanningsstation,",
             "   koelwaterpompen, gasontvangst"]
@@ -487,8 +531,9 @@ def sheet_phases(pdf, d):
             bg.text(xx + 1.5, y0 - 9 * (r + 1) + 4.5, txt, fontsize=7, va="center", weight="bold" if r == 0 else None)
             xx += cw[c]
     text_block(bg, y0 - 9 * len(rows) - 8, [
-        "De containerkade aan de voorhaven groeit zuidwaarts; baggeren en kadebouw voor",
-        "F2/F3 gebeuren aan het zuideinde, buiten de vaarroute naar C1/C2 en de draaikom.",
+        "De containerkade ligt aan de westzijde van vinger 6 in het insteekbekken (beschut, DO-09)",
+        "en groeit zuidwaarts; baggeren en kadebouw voor F2/F3 gebeuren aan het zuideinde van",
+        "de insteek, achter de schepen aan C1/C2 en buiten de zwaaiplaats.",
         "Toekomstige onderdelen zijn gestippeld; alleen functies uit de opdracht zijn getekend.",
         "Golfbrekers, geul, draaikom, LNG-steiger en leidingcorridors worden in F1 op",
         "eindmaat aangelegd (latere uitbreiding is onevenredig duur, rapport par. 10).",
@@ -517,8 +562,10 @@ def sheet_tables(pdf, d, geo):
     rows = [
         ("Hoofdgeul bodembreedte", "220 m", "Nautiek D20 = 220", "rekenuitkomst"),
         ("Bodemhoogte geul/bekken", "-18,20 m MLWS", "Nautiek D25 = 18,20", "voorlopig"),
-        ("Geullengte buiten mond", f"{nl(m['geullengte_buiten_mond_m'])} m", "Nautiek D31 (ingevuld)", "VOORLOPIG"),
-        ("Vrije draaikom", "D 720 m", "Nautiek D28 = 720", "vrij getoetst"),
+        ("Geullengte buiten mond", f"{nl(m['geullengte_buiten_mond_m'])} m", "Nautiek D31 (GEBCO 2026)", "geen peiling"),
+        ("Dieptezone LNG / RoRo", "-16,20 / -13,70 m MLWS", "diepgang 12,5 / 10,0 + 3,7", "bespaart bagger"),
+        ("Vrije draaikom voorhaven", "D 720 m", "Nautiek D28 = 720", "vrij getoetst"),
+        ("Zwaaiplaats binnenhaven", f"D {nl(m['zwaaiplaats_D_m'])} m", "1,5 LOA met sleepboten", "vrij getoetst"),
         ("  afstand tot schepen/kades", f"{nl(m['draaikom_vrij_van_schepen_m'])} / {nl(m['draaikom_vrij_van_kades_dammen_m'])} m", "> 0", "voldoet"),
         ("Havenmond vrij (footprints)", f"{nl(m['havenmond_vrij_m'])} m", "Nautiek D29 = 350", "voldoet"),
         ("Stopweg mond - draaikom", f"{nl(m['stopweg_mond_draaikom_m'])} m", "5 LOA = 1.670 m", "voldoet"),
@@ -528,14 +575,20 @@ def sheet_tables(pdf, d, geo):
         ("Graankade / terrein", f"300 m / {nl(m['graan_ha'], 1)} ha", "300 m / 30 ha (vraag 5,1)", "gelijk"),
         ("RoRo-kade / terrein", f"300 m / {nl(m['roro_ha'], 1)} ha", "300 m / 30 ha (vraag 26,9)", "gelijk"),
         ("LNG-ligplaatsenvelop", "400 m", "ca. 400 m", "dolphins indicatief"),
-        ("LNG-envelop tot draaikom", f"{nl(m['lng_ligplaats_tot_draaikom_m'])} m", "vrij", "QRA volgt"),
+        ("LNG-envelop tot draaikom", f"{nl(m['lng_ligplaats_tot_draaikom_m'])} m", "> 250 m zone", "voldoet"),
+        ("Schepen/gebouwen in LNG-zone", f"{len(m['vz_schepen_in_250m'])} / {len(m['vz_gebouwen_in_zones'])}", "0 (250 m)", "QRA volgt"),
         ("LNG-zone (3 tanks + optie 4e)", f"{nl(m['lng_zone_ha'], 1)} ha", "3 x 180.000 m3", "N-1 open"),
         ("Centrale + utilities", f"{nl(m['centrale_ha'], 1)} ha", "geen vast oppervlak", "reservering"),
         ("Vrije breedte binnenbekken", f"{nl(m['vrije_breedte_binnenbekken_m'])} m", ">= 220 m", "voldoet"),
         ("Havenbekken baggervak (zone 1)", f"{nl(m['havenbekken_totaal_m2'] / 1e4, 1)} ha", "Grondwerk C6", "ingevuld"),
-        ("Geul buiten mond (zone 2+3)", f"{nl(m['geul_buiten_m2'] / 1e4, 1)} ha", "Grondwerk C7+C8", "split op -15 m DHN open"),
+        ("Geul buiten mond (zone 2+3)", f"{nl(m['geul_buiten_m2'] / 1e4, 1)} ha", "Grondwerk C7+C8", "split op -15 m"),
         ("Terreinophoging", f"{nl(m['terreinophoging_m2'] / 1e4, 1)} ha", "Grondwerk D21", "ingevuld"),
     ]
+    gw = d.info.get("grondwerk")
+    if gw:
+        rows += [("Baggervolume zone 1/2/3", " / ".join(nl(gw[f'zone{z}']['volume'] / 1e6, 1) for z in (1, 2, 3)) + " mln m3",
+                  "celmethode GEBCO/DEM", "indicatief"),
+                 ("Besparing dieptezones", f"{nl(gw['besparing_dieptezones_m3'] / 1e6, 2)} mln m3", "t.o.v. overal -18,20", "")]
     y = table(bg, 15, PH - 22, ("Onderdeel", "Gemeten in DO-tekening", "Rekenboek", "Status"), [78, 75, 92, 58], rows,
               title="Maatstaat DO - tekening tegen rekenboek")
     an = [(k, a["naam"], nl(a["E"], 1), nl(a["N"], 1), f"{a['lat']:.6f}", f"{a['lon']:.6f}") for k, a in d.anchor.items()]
@@ -622,6 +675,10 @@ def make_pdf(d, path, coast, geo):
                 sheet_overlay(pdf, d)
             for blad, naam, center, scale in d.detail_views:
                 sheet_detail(pdf, d, blad, naam, center, scale, detail_lines(d, blad))
+            if d.info.get("golftoets"):
+                sheet_golf(pdf, d)
+            if d.info.get("grondwerk"):
+                sheet_geul(pdf, d)
         info = pdf.infodict()
         info["Title"] = f"Haven_{d.code} - Havenontwerp Groep 1"
         info["Author"] = "Groep 1 - Atelier De Haven A"
@@ -683,13 +740,164 @@ def sheet_overlay(pdf, d):
         "- havenmond 350 m vrij (render ca. 640 m);",
         "- alleen functies uit de opdracht: erts, werf,",
         "  industrie en olie weggelaten;",
-        "- draaikom binnenhaven D 460 m op de -16 m-cirkel;",
-        "- containerkade aan de oostzijde van vinger 6:",
-        "  bereikbaar vanuit de draaikom zonder bocht;",
+        "- zwaaiplaats binnenhaven D 500 m (met sleepboten);",
+        "- containerkade aan de westzijde van vinger 6, in",
+        "  de insteek: beschut tegen golven (DO-09);",
+        "- LNG-steiger achter de zuidelijke dam, tanks",
+        "  oostelijk in de zone: kortere cryogene leiding;",
         "- maten volgen het rekenboek.",
         "In de DXF staat de render op laag HV-REFERENTIE",
         "(uit); aanzetten om zelf verder over te trekken.",
     ], fs=6.6, lh=4.0)
     title_block(bg, d, f"{d.code}-05", "Overtrek Porto Central-render op luchtfoto", f"1:{nl(d.scale)}")
+    pdf.savefig(f)
+    plt.close(f)
+
+
+def sheet_golf(pdf, d):
+    """DO-09: golfdoordringing (diffractie) voor de twee maatgevende golfrichtingen + toetstabel."""
+    import golven
+    f, bg = fig_new()
+    g = d.info["golftoets"]
+    panels = [((15, 302, 620, 277), 90.0), ((15, 15, 620, 277), 45.0)]
+    levels = [0, 0.1, 0.3, 0.5, 1.0, 1.5, 2.0, 3.5]
+    cmap = plt.get_cmap("RdYlGn_r")
+    for rect, frm in panels:
+        ax = map_axes(f, rect, d.center, 14000)
+        grid(ax, 1000)
+        for X, Y, kd in golven.kd_regios(d, frm, stap=30.0):
+            ax.contourf(X, Y, kd * golven.HS_BUITEN, levels=levels, cmap=cmap, alpha=0.75, zorder=3, extend="max")
+        draw_design(ax, d, labels=False, anchors=False, dims=False)
+        az = math.radians(frm + 180)
+        x1, y1 = ax.get_xlim()[1], ax.get_ylim()[1]
+        sx = x1 - ax.get_xlim()[0]
+        ax.add_patch(FancyArrow(x1 - 0.12 * sx - math.sin(az) * 700, y1 - 0.45 * (y1 - ax.get_ylim()[0]) - math.cos(az) * 700,
+                                math.sin(az) * 700, math.cos(az) * 700, width=60, head_width=200, head_length=200,
+                                fc="white", ec="black", zorder=60))
+        ax.text(0.02, 0.96, f"Golven uit {'O' if frm == 90 else 'NO'} ({frm:.0f} gr), Hs buiten {nl(golven.HS_BUITEN, 1)} m, T 8 s",
+                transform=ax.transAxes, fontsize=11, weight="bold", va="top", color="white", path_effects=HALO)
+        north_scale(ax, 14000, 1000)
+    # kleurenschaal
+    y = PH - 14
+    bg.text(PANEL_X + 2, y, "Hs aan de ligplaats (m) = Kd x Hs buiten", fontsize=9, weight="bold", va="top")
+    y -= 9
+    for i in range(len(levels) - 1):
+        c = cmap((i + 0.5) / (len(levels) - 1))
+        bg.add_patch(Rectangle((PANEL_X + 3 + i * 24, y - 5), 24, 5, fc=c, alpha=0.75, ec="black", lw=0.3))
+        bg.text(PANEL_X + 3 + i * 24, y - 7, nl(levels[i], 1), fontsize=6.5, va="top", ha="center")
+    y -= 16
+    rows = []
+    for naam, v in g.items():
+        rows.append((naam.replace("Variant: ", "Var.: ")[:38], nl(v["kd_max"], 2), nl(v["hs"], 2), nl(v["grens"], 1),
+                     "voldoet" if v["voldoet"] else "VOLDOET NIET"))
+    y = table(bg, PANEL_X + 1, y, ("Ligplaats", "Kd max", "Hs (m)", "grens", "toets"), [76, 18, 18, 16, 25], rows,
+              fs=6.4, rh=6.0, title="Toets per ligplaats (maatgevende richting NO-ZZO)")
+    text_block(bg, y - 4, [
+        "**Methode",
+        "Diffractie door opeenvolgende openingen (Huygens-",
+        "Kirchhoff): havenmond -> ingang hoofdbekken -> insteek.",
+        "Golfrichtingen 45-157,5 gr (NO-ZZO), T 8 s, h 15 m.",
+        "Hs buiten 2,5 m = bovenkant bandbreedte Deel 1.",
+        "Grenzen (indicatief, PIANC/handboeken): containers",
+        "0,5 m, RoRo 0,3 m, graan 1,0 m, LNG 1,0 m.",
+        "Niet meegenomen: reflectie, refractie, lange golven;",
+        "een numeriek golfmodel (bijv. SWAN/Boussinesq) en",
+        "een schaalmodel volgen in de uitvoeringsfase.",
+        "**Gevolgen voor het ontwerp",
+        "- containers aan de westzijde van vinger 6 (insteek);",
+        "  de oostzijde aan de voorhaven voldoet niet (1,7 m);",
+        "- LNG-steiger achter het midden van de zuidelijke dam;",
+        "  de plek bij de havenmond voldoet niet (1,1 m).",
+    ], fs=6.5, lh=3.9)
+    title_block(bg, d, f"{d.code}-09", "Golftoets ligplaatsen (diffractie)", "1:14.000")
+    pdf.savefig(f)
+    plt.close(f)
+
+
+def sheet_geul(pdf, d):
+    """DO-10: bestaande bodem (GEBCO + DEM), toegangsgeul met dieptezones en lengteprofiel + grondwerk."""
+    import bodem
+    from matplotlib.colors import LinearSegmentedColormap
+    f, bg = fig_new()
+    z, tr = bodem._load()
+    W, S, E, N = bodem.BBOX
+    scale = 75000
+    rect = (15, 300, 620, 279)
+    ax = f.add_axes([rect[0] / PW, rect[1] / PH, rect[2] / PW, rect[3] / PH])
+    sx, sy = rect[2] * scale / 1000, rect[3] * scale / 1000
+    cx, cy = 313000.0, 7648000.0
+    ax.set_xlim(cx - sx / 2, cx + sx / 2)
+    ax.set_ylim(cy - sy / 2, cy + sy / 2)
+    ax.set_aspect("equal")
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_facecolor("#08306b")
+    sea = LinearSegmentedColormap.from_list("zee", ["#08306b", "#2171b5", "#6baed6", "#c6dbef"])
+    zs = np.ma.masked_invalid(np.where(z < 0, z, np.nan))
+    im = ax.imshow(zs, extent=(W, E, S, N), cmap=sea, vmin=-25, vmax=0, zorder=0, interpolation="bilinear")
+    from matplotlib.colors import ListedColormap
+    zl = np.ma.masked_invalid(np.where(z >= 0, 1.0, np.nan))
+    ax.imshow(zl, extent=(W, E, S, N), cmap=ListedColormap(["#d9cfae"]), zorder=0, interpolation="nearest")
+    grid(ax, 5000)
+    draw_design(ax, d, labels=False, anchors=False, dims=False)
+    n = d.notes
+    Mw, Ew = d.P(*n["M"]), d.P(*n["eind"])
+    u = ((Ew[0] - Mw[0]) / math.dist(Mw, Ew), (Ew[1] - Mw[1]) / math.dist(Mw, Ew))
+    for l, t in ((0, "havenmond"), (n["geul_15"], f"natuurlijk -15 m\n({nl(n['geul_15'] / 1000)} km)"),
+                 (n["geul_lengte"], f"natuurlijk -18,2 m\n= geuleinde ({nl(n['geul_lengte'] / 1000)} km)")):
+        p = (Mw[0] + u[0] * l, Mw[1] + u[1] * l)
+        ax.plot(*p, "o", ms=6, mfc="#ffd60a", mec="black", zorder=60)
+        ax.text(p[0], p[1] - 900, t, fontsize=7.5, color="white", ha="center", va="top", path_effects=HALO, zorder=60)
+    ax.text(0.02, 0.96, "Bestaande bodem t.o.v. MLWS (GEBCO 2026 + Copernicus DEM) met toegangsgeul",
+            transform=ax.transAxes, fontsize=11, weight="bold", va="top", color="white", path_effects=HALO)
+    north_scale(ax, scale, 5000)
+    cb = f.add_axes([400 / PW, 312 / PH, 200 / PW, 5 / PH])
+    f.colorbar(im, cax=cb, orientation="horizontal").set_label("diepte t.o.v. MLWS (m)", fontsize=7)
+    cb.tick_params(labelsize=6.5)
+    # lengteprofiel
+    pr = np.array(d.info["geulprofiel"])
+    ap = f.add_axes([30 / PW, 40 / PH, 595 / PW, 230 / PH])
+    km = pr[:, 0] / 1000
+    ap.fill_between(km, pr[:, 1], -18.2, where=pr[:, 1] > -18.2, color="#e76f51", alpha=0.55, label="te baggeren (tot -18,20)")
+    ap.plot(km, pr[:, 1], color="#08306b", lw=1.6, label="bestaande bodem (gem. over 2 km breedte)")
+    ap.axhline(-18.2, color="#c1121f", lw=1.4, ls="--", label="ontwerpbodem geul -18,20 m MLWS")
+    ap.axhline(-15.0, color="#6c757d", lw=0.8, ls=":")
+    ap.axvline(n["geul_15"] / 1000, color="#6c757d", lw=0.8, ls=":")
+    ap.axvline(n["geul_lengte"] / 1000, color="#c1121f", lw=0.8)
+    ap.text(n["geul_15"] / 1000 + 0.3, -3, "zone 2 | zone 3\n(-15 m)", fontsize=8, va="top")
+    ap.text(n["geul_lengte"] / 1000 + 0.3, -3, "geuleinde", fontsize=8, va="top", color="#c1121f")
+    ap.set_xlim(0, 40)
+    ap.set_ylim(-25, 2)
+    ap.set_xlabel("afstand vanaf havenmond langs de geulas (km)", fontsize=9)
+    ap.set_ylabel("hoogte t.o.v. MLWS (m)", fontsize=9)
+    ap.grid(alpha=0.3)
+    ap.legend(loc="lower left", fontsize=8)
+    ap.set_title("Lengteprofiel toegangsgeul (verticaal sterk overdreven)", fontsize=10, loc="left")
+    # grondwerk
+    gw = d.info["grondwerk"]
+    rows = [(v["vak"].replace("  ", " ")[:30], nl(-v["diepte"], 2), nl(v["oppervlak"] / 1e4, 1), nl(-v["bestaande_diepte"], 1),
+             nl(v["volume"] / 1e6, 2)) for v in gw["vakken"]]
+    rows.append(("Totaal baggeren", "", nl(sum(v["oppervlak"] for v in gw["vakken"]) / 1e4, 1), "", nl(gw["totaal_bagger_m3"] / 1e6, 1)))
+    y = table(bg, PANEL_X + 1, PH - 20, ("Vak", "bodem", "ha", "nu (gem.)", "mln m3"), [62, 18, 18, 20, 20], rows,
+              fs=6.2, rh=5.8, title="Baggervolumes per vak (celmethode 30 m)")
+    text_block(bg, y - 4, [
+        f"Besparing door dieptezones t.o.v. overal -18,20: {nl(gw['besparing_dieptezones_m3'] / 1e6, 2)} mln m3",
+        "   (LNG-vaarweg -16,20 en RoRo-ligplaats -13,70).",
+        f"Terrein {nl(gw['terrein_m2'] / 1e4)} ha op +{nl(gw['maaiveld'], 1)} m MLWS: maaiveld nu gem. +{nl(gw['terrein_gem_hoogte'], 1)} m;",
+        f"   afgraving {nl(gw['afgraving_m3'] / 1e6, 1)} mln m3, ophoging {nl(gw['ophoging_m3'] / 1e6, 2)} mln m3",
+        f"   (zetting {nl(gw['zetting'], 1)} m). Let op: DEM = oppervlak incl.",
+        "   begroeiing, werkelijk maaiveld ligt lager.",
+        "**Bronnen en aannamen",
+        "GEBCO 2026 (15'', ca. 450 m), Source Cooperative;",
+        "Copernicus DEM GLO-30 (AWS Open Data);",
+        "MLWS = MSL - 0,7 m (aanname, getijslag ca. 1,4 m).",
+        "Geuleinde waar de natuurlijke bodem, gemiddeld over",
+        "2 km, overal dieper is dan -18,20 m. Bij GEBCO-",
+        "resolutie +-1 m onzekerheid: lengte kan enkele km",
+        "verschuiven. Multibeampeiling vóór uitvoering nodig.",
+        "Geul kan in fasen: eerst -15,5 m (containerschepen",
+        "deels beladen, met getij), eindmaat vóór 2045.",
+    ], fs=6.3, lh=3.8)
+    title_block(bg, d, f"{d.code}-10", "Toegangsgeul, bodemprofiel en grondwerk", "1:75.000")
     pdf.savefig(f)
     plt.close(f)

@@ -1,4 +1,5 @@
-"""LandXML 1.2 voor Civil 3D: geulas als Alignment en de ontwerpbodem (-18,20 m MLWS) als TIN-oppervlak.
+"""LandXML 1.2 voor Civil 3D: geulas als Alignment en de ontwerpbodem als TIN-oppervlak per dieptezone
+(-18,20 containers/graan/geul, -16,20 LNG-vaarweg, -13,70 RoRo; m MLWS).
 
 In Civil 3D: Insert > Import LandXML. Daarna kan een bathymetrie-oppervlak tegen 'Ontwerpbodem_DO'
 vergeleken worden (Volumes Dashboard) voor de baggervolumes.
@@ -31,22 +32,35 @@ def write_landxml(d, path):
                      f'<End>{b[1]:.3f} {b[0]:.3f}</End></Line>')
         sta += lng
 
-    water = unary_union([i["geom"] for i in d.items if (i["layer"] == "HV-BAGGER" and i["phase"] <= 3)
-                         or i["layer"] == "HV-GEUL"]).buffer(0)
-    pts, idx, faces = [], {}, []
+    # één TIN-oppervlak per ontwerpdiepte (dieptezones: -18,20 / -16,20 / -13,70 m MLWS)
+    zones = {}
+    for i in d.items:
+        if (i["layer"] == "HV-BAGGER" and i["phase"] <= 3) or i["layer"] == "HV-GEUL":
+            zones.setdefault(i.get("diepte", -Z_BODEM), []).append(i["geom"])
+    geteld = None
+    surfaces = []
+    for diepte in sorted(zones, reverse=True):
+        water = unary_union(zones[diepte]).buffer(0)
+        if geteld is not None:
+            water = water.difference(geteld)
+        geteld = water if geteld is None else unary_union([geteld, water])
+        pts, idx, faces = [], {}, []
 
-    def pid(x, y):
-        k = (round(x, 3), round(y, 3))
-        if k not in idx:
-            pts.append(k)
-            idx[k] = len(pts)
-        return idx[k]
+        def pid(x, y):
+            k = (round(x, 3), round(y, 3))
+            if k not in idx:
+                pts.append(k)
+                idx[k] = len(pts)
+            return idx[k]
 
-    for poly in _polys(water.simplify(0.5)):
-        tri = shapely.constrained_delaunay_triangles(poly)
-        for t in tri.geoms:
-            c = list(t.exterior.coords)[:3]
-            faces.append(tuple(pid(x, y) for x, y in c))
+        for poly in _polys(water.simplify(0.5)):
+            if poly.geom_type != "Polygon" or poly.area < 1:
+                continue
+            tri = shapely.constrained_delaunay_triangles(poly)
+            for t in tri.geoms:
+                c = list(t.exterior.coords)[:3]
+                faces.append(tuple(pid(x, y) for x, y in c))
+        surfaces.append((diepte, pts, faces, water.area))
 
     out = [
         '<?xml version="1.0" encoding="UTF-8"?>',
@@ -61,13 +75,18 @@ def write_landxml(d, path):
         f'<Alignments name="Geul"><Alignment name="Hoofdgeul_{d.code}" length="{sta:.3f}" staStart="0" '
         f'desc="As toegangsgeul 220 m, van geuleinde via havenmond naar draaikom"><CoordGeom>{"".join(lines)}</CoordGeom>'
         '</Alignment></Alignments>',
-        f'<Surfaces><Surface name="Ontwerpbodem_{d.code}" desc="Gebaggerde vlakken op {Z_BODEM:.2f} m MLWS (voorlopig)">'
-        '<Definition surfType="TIN"><Pnts>',
+        '<Surfaces>',
     ]
-    out += [f'<P id="{i}">{y:.3f} {x:.3f} {Z_BODEM:.3f}</P>' for i, (x, y) in enumerate(pts, 1)]
-    out.append("</Pnts><Faces>")
-    out += [f"<F>{a} {b} {c}</F>" for a, b, c in faces]
-    out.append("</Faces></Definition></Surface></Surfaces></LandXML>")
+    for diepte, pts, faces, _ in surfaces:
+        z = -diepte
+        out.append(f'<Surface name="Ontwerpbodem_{d.code}_{f"{z:.2f}".replace(".", "_")}" '
+                   f'desc="Gebaggerde vlakken op {z:.2f} m MLWS (voorlopig)"><Definition surfType="TIN"><Pnts>')
+        out += [f'<P id="{i}">{y:.3f} {x:.3f} {z:.3f}</P>' for i, (x, y) in enumerate(pts, 1)]
+        out.append("</Pnts><Faces>")
+        out += [f"<F>{a} {b} {c}</F>" for a, b, c in faces]
+        out.append("</Faces></Definition></Surface>")
+    out.append("</Surfaces></LandXML>")
     with open(path, "w", encoding="utf-8") as f:
         f.write("\n".join(out))
-    return dict(route_m=sta, punten=len(pts), driehoeken=len(faces), oppervlak_m2=water.area)
+    return dict(route_m=sta, oppervlakken={f"{-z:.2f}": dict(punten=len(p), driehoeken=len(f), oppervlak_m2=a)
+                                          for z, p, f, a in surfaces})
