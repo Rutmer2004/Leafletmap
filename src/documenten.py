@@ -34,21 +34,23 @@ BESLUITEN = [
      f"door het bouwterrein fase 1; kustpunt A1 E {nl(ANK['A1']['E'], 1)} / N {nl(ANK['A1']['N'], 1)}; bekkens landinwaarts op het Porto Central-terrein.",
      "Vastgelegd", "Ligging van de havenas op het terrein afstemmen met het bouwterrein fase 1 / masterplan."),
     ("B02", "Havenvorm en programma", "SO: grove schets op de Porto Central-render.",
-     "DO: de vorm van Porto Central is aangehouden (gebogen dammen, ingang naar het OZO, hoofdbekken langs de noordkade, "
-     "containervinger, tankpark langs de zuidrand), maar er staan alleen functies uit de opdracht in: containers, droge bulk (graan), "
-     "voertuigen (RoRo), LNG en de centrale. Erts, werf, industrie, supply base, olie en het tweede insteekbekken zijn weggelaten.",
-     "Vastgelegd", "Geen; eventuele latere uitbreiding apart onderbouwen."),
+     "DO: de vorm van de render blijft: gebogen dammen, ingang naar het OZO, hoofdbekken langs de noordkade, twee schuine vingers met "
+     "insteekbekkens en het tankpark langs de zuidrand. Er staan alleen functies uit de opdracht in: containers (vinger 6), droge bulk/graan "
+     "(noordkade), voertuigen/RoRo (vinger 7/8), LNG en de centrale (zuidrand). Erts, werf, industrie en olie zijn weggelaten; de overige "
+     "ruimte op vinger 7/8 en de tweede insteek zijn uitbreidingsruimte voor de eigen ladingstromen na 2045.",
+     "Vastgelegd", "Uitbreidingsruimte apart onderbouwen als de groei na 2045 aan de orde komt."),
     ("B03", "Havenmond", f"SO: 350 m tussen damhartlijnen, vrij tussen de footprints maar {nl(SO['havenmond_vrij_m'])} m.",
      f"DO: dammen verlegd, {nl(DO['havenmond_vrij_m'])} m vrij tussen de golfbrekerfootprints (90 m breed).",
      "Verwerkt", "Na golfbrekerontwerp (kruin, taluds) footprint en vrije breedte opnieuw meten."),
-    ("B04", "Manoeuvreren met grote schepen", f"SO: containerkade in een insteekbekken: een schip van 334 m moet {nl(SO['bocht_hoofdbekken_insteek_graden'])} gr "
-     "draaien vanuit een hoofdbekken van 370 m breed. Met een vuistregel voor de bochtstraal van minimaal 3 x LOA (ca. 1.000 m) past dat niet. "
-     f"Ook overlapt de draaikom de containervinger ({nl(SO['draaikom_overlap_land_m2'] / 1e4, 1)} ha).",
-     f"DO: containerkade aan de oostzijde van de vinger, direct aan de voorhaven. Schepen zwaaien in de draaikom (D 720 m = 2,2 LOA) en "
-     f"verhalen zijwaarts met sleepboten naar de kade: geen bocht buiten de draaikom. Graan- en RoRo-schepen varen met een koerswijziging van "
-     f"{nl(DO['bocht_geul_hoofdbekken_graden'])} gr het hoofdbekken in en verlaten het achteruit of zwaaien vooraf in de draaikom. "
-     f"Draaikom {nl(DO['draaikom_vrij_van_schepen_m'])} m vrij van afgemeerde schepen; stopweg {nl(DO['stopweg_mond_draaikom_m'])} m = "
-     f"{nl(DO['stopweg_in_LOA'], 1)} LOA.",
+    ("B04", "Manoeuvreren met grote schepen", f"SO: containerkade in het insteekbekken: een schip van 334 m moet {nl(SO['bocht_hoofdbekken_insteek_graden'])} gr "
+     f"draaien vanuit een hoofdbekken van {nl(SO['breedte_hoofdbekken_m'])} m breed. Met een vuistregel voor de bochtstraal van minimaal 3 x LOA "
+     f"(ca. 1.000 m) past dat niet. Ook overlapt de draaikom de containervinger ({nl(SO['draaikom_overlap_land_m2'] / 1e4, 1)} ha) en is er "
+     "binnen geen draairuimte voor graan- en RoRo-schepen.",
+     f"DO: containerkade aan de voorhavenzijde van vinger 6: containerschepen zwaaien in de draaikom (D 720 m = 2,2 LOA) en verhalen zijwaarts "
+     f"met sleepboten naar de kade, zonder bocht buiten de draaikom. Graan- en RoRo-schepen (ca. 230 m) varen met {nl(DO['bocht_geul_hoofdbekken_graden'])} gr "
+     "koerswijziging het hoofdbekken in en zwaaien in een draaikom binnenhaven van D 460 m (2 x LOA) op de kruising met het insteekbekken, "
+     f"op de plaats van de -16 m-cirkel in de render; die ligt {nl(DO['draaikom_binnen_vrij_van_schepen_m'])} m vrij van afgemeerde schepen. "
+     f"Draaikom voorhaven {nl(DO['draaikom_vrij_van_schepen_m'])} m vrij; stopweg {nl(DO['stopweg_mond_draaikom_m'])} m = {nl(DO['stopweg_in_LOA'], 1)} LOA.",
      "Verwerkt", "Toetsen met bochtstralen uit PIANC WG121 en een nautische simulatie met sleepboten."),
     ("B05", "Toegangsgeul en sleepboten", "SO: geul knikt 15 gr op 2,2 km buiten de mond; geen sleepbootkoppelpunt.",
      f"DO: rechte geul 220 m, -18,20 m MLWS, in het verlengde van de havenmond; koppelpunt {nl(DO['sleepboot_buiten_mond_m'])} m buiten de mond (A4). "
@@ -60,12 +62,13 @@ BESLUITEN = [
      f"LNG-steiger achter de zuidelijke dam, {nl(DO['lng_ligplaats_tot_draaikom_m'])} m vrij van de draaikom; ruimte voor een 4e tank.",
      "Verwerkt / QRA open", "QRA en veiligheidsafstanden; N-1-voorraadbeleid kiezen."),
     ("B07", "Droge bulk (graan) en RoRo", f"SO: gedeeld perceel van {nl(SO['graan_ha'])} ha aan de noordkade, weg kruist het terrein.",
-     f"DO: graan {nl(DO['graan_ha'], 1)} ha en RoRo {nl(DO['roro_ha'], 1)} ha naast elkaar aan de noordkade van het hoofdbekken, ieder een "
-     "kade van 300 m, eigen poort aan de noordweg; graansilo met transportband, RoRo-ramp.",
+     f"DO: graan {nl(DO['graan_ha'], 1)} ha aan de noordkade (render 10) met silo en transportband; RoRo {nl(DO['roro_ha'], 1)} ha in de "
+     "noordoosthoek van vinger 7/8 met kade aan het insteekbekken; ieder een kade van 300 m en een eigen poort.",
      "Verwerkt", "Rijcircuit RoRo en conveyorroute graan detailleren."),
     ("B08", "Fasering", "SO: containerfase 1 aan het zuideinde; alle bekkens in fase 1 baggeren.",
-     f"DO: fase 1 aan de noordkop (C1-C2), de kade groeit zuidwaarts langs de voorhaven; gebaggerd {nl(DO['binnenbekken_m2']['1'] / 1e4, 1)} / "
-     f"{nl(DO['binnenbekken_m2']['2'] / 1e4, 1)} / {nl(DO['binnenbekken_m2']['3'] / 1e4, 1)} ha (hoofdbekken + ligplaatsstroken).",
+     f"DO: containers fase 1 aan de noordkop (C1-C2), de kade groeit zuidwaarts langs de voorhaven; gebaggerd {nl(DO['binnenbekken_m2']['1'] / 1e4, 1)} / "
+     f"{nl(DO['binnenbekken_m2']['2'] / 1e4, 1)} / {nl(DO['binnenbekken_m2']['3'] / 1e4, 1)} ha; insteek zuid, hoofdbekken west en tweede insteek "
+     f"({nl(DO['reserve_water_m2'] / 1e4, 1)} ha) pas na 2045.",
      "Verwerkt", "Bouwmethode uitbreiding naast werkende kade uitwerken."),
     ("B09", "Centrale en utilities", "SO: centrale naast de LNG-zone.",
      f"DO: reservering {nl(DO['centrale_ha'], 1)} ha naast de LNG-zone langs de zuidrand; gasleiding naar het regionale net; koelwater indicatief.",
@@ -107,13 +110,15 @@ MAATSTAAT = [
     ("Graanterrein", "ha", round(DO["graan_ha"], 1), 30, "Invoer D39 (vraag 5,1)", "gelijk"),
     ("RoRo-kade", "m", 300, 300, "rapport 8.2", "gelijk"),
     ("RoRo-terrein", "ha", round(DO["roro_ha"], 1), 30, "Invoer D46 (vraag 26,9)", "gelijk"),
+    ("Draaikom binnenhaven (graan/RoRo)", "m", 460, 458, "2 x LOA graan", "vrij getoetst"),
+    ("  afstand tot afgemeerde schepen", "m", round(DO["draaikom_binnen_vrij_van_schepen_m"]), ">0", "", "voldoet"),
     ("LNG-ligplaatsenvelop", "m", 400, 400, "tekenbrief", "dolphins indicatief"),
     ("LNG-envelop tot draaikom", "m", round(DO["lng_ligplaats_tot_draaikom_m"]), ">0", "", "vrij; QRA volgt"),
     ("LNG-tanks tot containerterrein", "m", round(DO["lng_tank_tot_containerterrein_m"]), None, "", "QRA volgt"),
     ("LNG-zone (tanks + hervergassing)", "ha", round(DO["lng_zone_ha"], 1), None, "Invoer D51-D52", "3 tanks + optie 4e"),
     ("Centrale + utilities (reservering)", "ha", round(DO["centrale_ha"], 1), None, "geen vast oppervlak", "reservering"),
     ("Havendiensten / sleepboten", "ha", round(DO["havendienst_ha"], 1), None, "", "reservering"),
-    ("Vrije breedte hoofdbekken met schip aan de kade", "m", round(DO["vrije_breedte_binnenbekken_m"]), 220, "", "voldoet"),
+    ("Vrije breedte hoofdbekken met graanschip aan de kade", "m", round(DO["vrije_breedte_binnenbekken_m"]), 220, "", "voldoet"),
     ("Binnenbekken gebaggerd fase 1", "m2", round(DO["binnenbekken_m2"]["1"]), None, "", ""),
     ("Binnenbekken gebaggerd fase 2 (cumulatief)", "m2", round(DO["binnenbekken_m2"]["2"]), None, "", ""),
     ("Binnenbekken gebaggerd fase 3 (cumulatief)", "m2", round(DO["binnenbekken_m2"]["3"]), None, "", ""),
@@ -310,12 +315,12 @@ def write_docx(path, figs):
     h("1 Wat is opgeleverd")
     table(["Bestand", "Inhoud"], [
         ("CAD/Haven_SO.dxf", "Schetsontwerp in projectcoördinaten EPSG:31984 met lagen, luchtfoto-ondergrond (IMAGE) en A1-layout 1:10.000"),
-        ("CAD/Haven_DO.dxf", "Definitief ontwerp naar Porto Central met alleen de opdrachtfuncties; maatvoering, fasegrenzen, ankerpunten, A1-layout 1:10.000, render op laag HV-REFERENTIE"),
+        ("CAD/Haven_DO.dxf", "Definitief ontwerp naar Porto Central met alleen de opdrachtfuncties; maatvoering, fasegrenzen, ankerpunten, A1-layout 1:12.500, render op laag HV-REFERENTIE"),
         ("CAD/Haven_DO_geul_ontwerpbodem.xml", "LandXML voor Civil 3D: geulas als Alignment en ontwerpbodem -18,20 m MLWS als TIN-oppervlak"),
         ("Referentie/", "Uitsnede Porto Central-masterplan 2016 p. 9 (vormreferentie)"),
         ("CAD/Ondergrond/", "Sentinel-2 luchtfoto (JPG + world file .jgw + .prj), kustlijnen; relatief pad naast de DXF"),
-        ("PDF/Haven_SO.pdf", "SO-01 overzicht 1:50.000, SO-02 havenindeling 1:10.000, SO-03 bespreekpunten"),
-        ("PDF/Haven_DO.pdf", "DO-01 overzicht, DO-02 havenplan 1:10.000, DO-03 fasering 1:20.000, DO-04 maatstaat/georeferentie, DO-05 overtrek render"),
+        ("PDF/Haven_SO.pdf", "SO-01 overzicht 1:50.000, SO-02 havenindeling 1:12.500, SO-03 bespreekpunten"),
+        ("PDF/Haven_DO.pdf", "DO-01 overzicht, DO-02 havenplan 1:12.500, DO-03 fasering 1:25.000, DO-04 maatstaat/georeferentie, DO-05 overtrek render"),
         ("Maatstaat/Maatstaat_en_coordinaten.xlsx", "Maatstaat, ankerpunten E/N, georeferentie, kustcontrole, besluitenlijst"),
         ("Onderbouwing/Rekenboek_herontwerp_bijgewerkt.xlsx", "Rekenboek met gemeten tekenmaten teruggevoerd (Nautiek, Grondwerk, Invoer, Keuzes, Tekening_DO)"),
         ("webkaart/index.html", "Interactieve kaart (Leaflet) met SO en DO op luchtfoto"),
@@ -376,11 +381,14 @@ def write_docx(path, figs):
     table(["Porto Central (render / masterplan)", "Ons ontwerp"], [
         ("11 gebogen golfbrekers, 14 ingang naar het OZO", "Overgenomen; havenmond 350 m vrij (render ca. 640 m)"),
         ("Toegang ca. 26 km tot ca. -25 m", f"Geul 220 m tot -18,20 m MLWS, voorlopig {nl(DO['geullengte_buiten_mond_m'])} m"),
-        ("Draaikom (-20 m) in de voorhaven", "Vrije draaikom D 720 m in de voorhaven"),
-        ("6 containervinger", "Overgenomen; kraankade aan de voorhavenzijde (geen bocht naar een insteek)"),
-        ("10 graan aan de noordkade", "Overgenomen; RoRo ernaast aan dezelfde kade"),
-        ("9 tankpark langs de zuidrand, 18 LNG bij de zuiddam", "Overgenomen voor LNG en de centrale"),
-        ("2 erts, 3 werf, 5 olie, 7/8 supply, 12/1 industrie", "Niet in de opdracht: weggelaten"),
+        ("-20 m-cirkel in de voorhaven", "Vrije draaikom D 720 m (containerschepen)"),
+        ("-16 m-cirkel in het hoofdbekken", "Draaikom binnenhaven D 460 m (graan en RoRo)"),
+        ("Hoofdbekken, twee vingers, twee insteekbekkens", "Overgenomen (vorm gelijk aan de render)"),
+        ("6 containerterminal", "Containers 144 ha; kraankade aan de voorhavenzijde"),
+        ("10 graan aan de noordkade", "Graan 30 ha"),
+        ("7/8 tweede vinger", "RoRo 30 ha; rest uitbreidingsruimte eigen terminals"),
+        ("9 tankpark, 18 LNG bij de zuiddam", "LNG-zone en centrale; LNG-steiger"),
+        ("2 erts, 3 werf, 5 olie, 12/1 industrie", "Niet in de opdracht: weggelaten"),
     ], [7, 10])
     if "SO-03" in figs:
         doc.add_picture(figs["SO-03"], width=Cm(16.5))
@@ -392,21 +400,21 @@ def write_docx(path, figs):
     table(["Nr", "Onderwerp", "SO", "Besluit / DO", "Status", "Vervolgstap"], BESLUITEN, [1.0, 2.2, 3.6, 5.0, 1.8, 3.4])
 
     h("6 Definitief ontwerp (DO)")
-    p("Het definitieve ontwerp leert van Porto Central (vorm, dammen, draaikom in de voorhaven, tankpark langs de zuidrand), maar bevat "
-      "alleen de functies uit de opdracht en is getoetst op manoeuvreerbaarheid: grote schepen maken geen scherpe bochten buiten de draaikom. "
-      "De render is op schaal (10,035 m per pixel) op de kust gelegd; blad DO-05 toont de render met het DO erop. In de DXF staat de render "
-      "op laag HV-REFERENTIE.")
+    p("Het definitieve ontwerp houdt de vorm van de Porto Central-render aan (dammen, hoofdbekken, twee vingers met insteekbekkens, "
+      "tankpark), maar bevat alleen de functies uit de opdracht en is getoetst op manoeuvreerbaarheid: grote schepen draaien alleen in de "
+      "draaikommen. De render is op schaal (10,035 m per pixel) op de kust gelegd; blad DO-05 toont de render met het DO erop. In de DXF "
+      "staat de render op laag HV-REFERENTIE.")
     bullets([
         f"Voorhaven met twee gebogen golfbrekers (footprint 90 m, voorlopig); havenmond {nl(DO['havenmond_vrij_m'])} m vrij, ingang naar het OZO.",
         f"Rechte toegangsgeul 220 m bodembreedte, -18,20 m MLWS; voorlopig {nl(DO['geullengte_buiten_mond_m'])} m buiten de mond.",
         f"Sleepbootkoppelpunt {nl(DO['sleepboot_buiten_mond_m'])} m buiten de mond; stopweg mond - draaikom {nl(DO['stopweg_mond_draaikom_m'])} m ({nl(DO['stopweg_in_LOA'], 1)} LOA).",
-        f"Vrije draaikom D 720 m in de voorhaven; {nl(DO['draaikom_vrij_van_schepen_m'])} m vrij van afgemeerde schepen.",
-        "Containerterminal (vinger 6): kraankade 800 / 1.200 / 1.600 m aan de voorhaven, terrein 72 / 108 / 144 ha; fase 1 aan de noordkop. "
-        "Schepen zwaaien in de draaikom en verhalen zijwaarts naar de kade.",
-        f"Hoofdbekken {nl(DO['breedte_hoofdbekken_m'])} m breed (vrij {nl(DO['vrije_breedte_binnenbekken_m'])} m met schip aan de kade), koerswijziging vanaf de geul "
-        f"{nl(DO['bocht_geul_hoofdbekken_graden'])} gr; graan en RoRo elk 30 ha met 300 m kade aan de noordkade.",
+        f"Vrije draaikom D 720 m in de voorhaven ({nl(DO['draaikom_vrij_van_schepen_m'])} m vrij van schepen) en draaikom binnenhaven D 460 m "
+        f"({nl(DO['draaikom_binnen_vrij_van_schepen_m'])} m vrij).",
+        "Containerterminal (vinger 6): kraankade 800 / 1.200 / 1.600 m aan de voorhaven, terrein 72 / 108 / 144 ha; fase 1 aan de noordkop.",
+        f"Hoofdbekken {nl(DO['breedte_hoofdbekken_m'])} m breed, koerswijziging vanaf de geul {nl(DO['bocht_geul_hoofdbekken_graden'])} gr; graan 30 ha aan de noordkade.",
+        "RoRo 30 ha op vinger 7/8 met kade aan het insteekbekken; de rest van vinger 7/8 en de tweede insteek zijn uitbreidingsruimte na 2045.",
         f"LNG-zone {nl(DO['lng_zone_ha'], 1)} ha met 3 x 180.000 m3 en ruimte voor een 4e tank; centrale {nl(DO['centrale_ha'], 1)} ha; LNG-steiger achter de zuidelijke dam.",
-        "Noordweg en zuidweg met spoor, aangesloten op het regionale net aan de westzijde.",
+        "Noordweg en ringweg met spoor, aangesloten op het regionale net aan de westzijde.",
     ])
     if "DO-02" in figs:
         doc.add_picture(figs["DO-02"], width=Cm(16.5))
@@ -449,7 +457,7 @@ def write_docx(path, figs):
         "Opslaan als: SAVEAS > AutoCAD 2018 Drawing > Haven_DO.dwg en Haven_SO.dwg.",
         "Insert > Import LandXML: Haven_DO_geul_ontwerpbodem.xml geeft de Alignment 'Hoofdgeul_DO' en het oppervlak 'Ontwerpbodem_DO'. "
         "Lees de bathymetrie in als tweede oppervlak en bereken de baggervolumes met het Volumes Dashboard.",
-        "Plotten: layout 'DO-02 A1 1-10000' (viewport 1:10.000, titelblok en legenda staan klaar) naar PDF; of gebruik de meegeleverde PDF's.",
+        "Plotten: layout 'DO-02 A1 1-12500' (viewport 1:12.500, titelblok en legenda staan klaar) naar PDF; of gebruik de meegeleverde PDF's.",
         "Lagen: HV-* (zie legenda). De maatvoering staat op HV-MAAT als echte DIMENSION-objecten; het raster 1 km staat op HV-RASTER (uit).",
     ], 1):
         doc.add_paragraph(f"{s}", style="List Number")

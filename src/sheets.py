@@ -512,7 +512,7 @@ def so_markup(d):
         f"LNG-tanks op {nl(m['lng_tank_tot_containerterrein_m'])} m van het containerterrein",
         "Graan + RoRo op één perceel aan de noordkade; weg kruist het terrein",
         f"Containerschip 334 m moet {nl(m['bocht_hoofdbekken_insteek_graden'])} gr draaien van hoofdbekken (370 m) naar insteek: niet haalbaar",
-        "Containers F1 aan het zuideinde van de insteek; alles in F1 baggeren",
+        "Containers F1 aan het zuideinde; geen draaikom binnen voor graan/RoRo; alles in F1 baggeren",
     ]
     return [(x, y, r, t) for (x, y, r), t in zip(pos, texts)]
 
@@ -530,8 +530,8 @@ def masterplan_inset(bg, y_bottom, width=None, render=False):
     bg.set_ylim(0, PH)
     bg.text(PANEL_X + 1, y_bottom + h + 2, "Referentie: Porto Central render (overgetrokken voor het DO)" if render
             else "Vormreferentie: Porto Central masterplan 2016, p. 9 (ANTT)", fontsize=7, weight="bold")
-    bg.text(PANEL_X + 1, y_bottom - 2, "Overgenomen: 11/14 dammen en ingang | 6 containervinger | 10 graan (+ RoRo) | 9 tankpark\n"
-            "(LNG + centrale) | 18 LNG-steiger.  Weggelaten (niet in opdracht): 2, 3, 5, 7/8, 12, 1", fontsize=5.8, va="top")
+    bg.text(PANEL_X + 1, y_bottom - 2, "Overgenomen: 11/14 dammen | vingers en insteken | 6 containers | 10 graan | 7/8 RoRo\n"
+            "9 tankpark (LNG + centrale) | 18 LNG-steiger.  Weggelaten (niet in opdracht): 2, 3, 5, 12, 1", fontsize=5.8, va="top")
     return y_bottom + h
 
 
@@ -608,7 +608,8 @@ def sheet_overlay(pdf, d):
         "Afwijkingen van de render zijn bewust:",
         "- havenmond 350 m vrij (render ca. 640 m);",
         "- alleen functies uit de opdracht: erts, werf,",
-        "  industrie, supply base en olie weggelaten;",
+        "  industrie en olie weggelaten;",
+        "- draaikom binnenhaven D 460 m op de -16 m-cirkel;",
         "- containerkade aan de oostzijde van vinger 6:",
         "  bereikbaar vanuit de draaikom zonder bocht;",
         "- maten volgen het rekenboek.",

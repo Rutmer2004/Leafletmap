@@ -31,19 +31,20 @@
    "lng_zone_ha": 31.90214807999318,
    "centrale_ha": 43.50292919998547,
    "havendienst_ha": 0.0,
-   "reserve_ha": 0.0,
+   "reserve_ha": 161.35357281755398,
    "binnenbekken_m2": {
-    "1": 1543548.3768008857,
-    "2": 1543548.3768008857,
-    "3": 1543548.3768008857
+    "1": 2839371.7401009933,
+    "2": 2839371.7401009933,
+    "3": 2839371.7401009933
    },
-   "voorhaven_bagger_m2": 1057192.6282277901,
-   "havenbekken_totaal_m2": 2600741.005028456,
+   "voorhaven_bagger_m2": 1057192.628227799,
+   "havenbekken_totaal_m2": 3896564.368328923,
    "reserve_water_m2": 0.0,
-   "vrije_breedte_binnenbekken_m": 328.595,
+   "vrije_breedte_binnenbekken_m": 334.035,
    "breedte_insteek_m": 556.4857654244177,
    "bocht_geul_hoofdbekken_graden": 18.33667142442715,
    "bocht_hoofdbekken_insteek_graden": 63.43494882292201,
+   "draaikom_binnen_vrij_van_schepen_m": null,
    "breedte_hoofdbekken_m": 371.295,
    "terreinophoging_m2": 3232056.166988115
   },
@@ -186,25 +187,26 @@
     "3": 144.00275175003154
    },
    "graan_ha": 30.421840072472975,
-   "roro_ha": 30.42184007249137,
+   "roro_ha": 30.210367499983334,
    "lng_zone_ha": 31.90214807999318,
    "centrale_ha": 43.50292919998547,
    "havendienst_ha": 42.95410752374204,
-   "reserve_ha": 0.0,
+   "reserve_ha": 131.1432053175441,
    "binnenbekken_m2": {
-    "1": 869756.4803254902,
-    "2": 1006559.0944878793,
-    "3": 1143361.7086503902
+    "1": 1324523.2124250638,
+    "2": 1461325.826587453,
+    "3": 1598128.440749964
    },
    "voorhaven_bagger_m2": 1007981.3407444302,
-   "havenbekken_totaal_m2": 2151343.049394752,
-   "reserve_water_m2": 0.0,
-   "vrije_breedte_binnenbekken_m": 328.595,
-   "breedte_insteek_m": 0.0,
+   "havenbekken_totaal_m2": 2606109.7814943553,
+   "reserve_water_m2": 1788453.7560007744,
+   "vrije_breedte_binnenbekken_m": 334.035,
+   "breedte_insteek_m": 556.4857654244177,
    "bocht_geul_hoofdbekken_graden": 19.069193537348138,
-   "bocht_hoofdbekken_insteek_graden": null,
+   "bocht_hoofdbekken_insteek_graden": 63.43494882292201,
+   "draaikom_binnen_vrij_van_schepen_m": 286.3028492522328,
    "breedte_hoofdbekken_m": 371.295,
-   "terreinophoging_m2": 3232056.166987166
+   "terreinophoging_m2": 3229941.441262085
   },
   "anker": {
    "A1": {
@@ -308,12 +310,21 @@
    },
    "A12": {
     "naam": "RoRo-kade midden",
-    "u": 677.0,
-    "v": 256.0,
-    "E": 295762.8064141049,
-    "N": 7649951.651563007,
-    "lat": -21.240612194564044,
-    "lon": -40.96804865655711
+    "u": 614.825,
+    "v": 323.35,
+    "E": 295265.7205087235,
+    "N": 7649177.718468673,
+    "lat": -21.24754486652757,
+    "lon": -40.97292951855154
+   },
+   "A13": {
+    "naam": "Middelpunt draaikom binnenhaven",
+    "u": 665.0,
+    "v": 285.0,
+    "E": 295694.7500889109,
+    "N": 7649644.14702121,
+    "lat": -21.24338131804275,
+    "lon": -40.96874104760519
    }
   },
   "info": {
@@ -469,8 +480,8 @@
  },
  "landxml": {
   "route_m": 19720.058717166343,
-  "punten": 92,
-  "driehoeken": 90,
-  "oppervlak_m2": 6111343.049398042
+  "punten": 99,
+  "driehoeken": 101,
+  "oppervlak_m2": 6566109.7814976815
  }
 }
