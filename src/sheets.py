@@ -118,7 +118,7 @@ def poly_xy(g):
 
 
 def draw_design(ax, d, labels=True, phase=None, fs=6.5, anchors=True, dims=True):
-    order = ["HV-BAGGER", "HV-RESERVE", "HV-CONTAINER", "HV-GRAAN", "HV-RORO", "HV-HAVENDIENST", "HV-CENTRALE",
+    order = ["HV-VOORHAVEN", "HV-BAGGER", "HV-RESERVE", "HV-CONTAINER", "HV-GRAAN", "HV-RORO", "HV-HAVENDIENST", "HV-CENTRALE",
              "HV-LNG", "HV-GEUL", "HV-GOLFBREKER", "HV-SCHIP", "HV-DRAAIKOM", "HV-KADE", "HV-WEG", "HV-SPOOR",
              "HV-LEIDING", "HV-FASEGRENS", "HV-GEUL-AS", "HV-SLEEPBOOT", "HV-ANKERPUNT"]
     ls_map = {"dashed": (0, (5, 3)), "dotted": (0, (1, 2)), "dashdot": (0, (8, 3, 2, 3))}
@@ -138,11 +138,16 @@ def draw_design(ax, d, labels=True, phase=None, fs=6.5, anchors=True, dims=True)
             lsty = ls_map.get(it.get("style"), "-")
             if g.geom_type in ("Polygon", "MultiPolygon"):
                 for xy in poly_xy(g):
+                    if lay == "HV-BAGGER" and it.get("style") == "dashed" and not future:
+                        ax.add_patch(MPoly(xy, closed=True, fc=col, alpha=0.6, ec="none", zorder=2 + z))
+                        ax.add_patch(MPoly(xy, closed=True, fill=False, ec="white", lw=0.8, ls=(0, (4, 3)), zorder=2 + z))
+                        continue
                     if future or it.get("style") == "dashed":
                         ax.add_patch(MPoly(xy, closed=True, fill=False, ec=col, lw=1.0, ls=(0, (4, 3)), zorder=2 + z))
                         continue
                     if lay == "HV-RESERVE":
-                        ax.add_patch(MPoly(xy, closed=True, fc="none", ec="white", lw=0.7, hatch="///", zorder=2 + z))
+                        ax.add_patch(MPoly(xy, closed=True, fc=col, alpha=fill, ec="none", zorder=2 + z))
+                        ax.add_patch(MPoly(xy, closed=True, fc="none", ec="#6c757d", lw=0.6, hatch="//", zorder=2 + z))
                     elif lay == "HV-DRAAIKOM":
                         ax.add_patch(MPoly(xy, closed=True, fill=False, ec=col, lw=1.6, ls=(0, (6, 3)), zorder=2 + z))
                     elif lay == "HV-GEUL":
@@ -222,7 +227,7 @@ def legend(bg, y_top, d, fs=7.2):
         elif name in ("HV-DRAAIKOM", "HV-HAVENMOND", "HV-SLEEPBOOT"):
             bg.add_patch(Rectangle((x, y - 4), 12, 4, fill=False, ec="#c9a400", lw=1.4, ls=(0, (3, 2))))
         elif name == "HV-RESERVE":
-            bg.add_patch(Rectangle((x, y - 4), 12, 4, fc="none", ec="#555", hatch="///", lw=0.6))
+            bg.add_patch(Rectangle((x, y - 4), 12, 4, fc="#dee2e6", ec="#6c757d", hatch="//", lw=0.6))
         elif name == "HV-GEUL":
             bg.add_patch(Rectangle((x, y - 4), 12, 4, fc=col, alpha=0.35, ec="#0096c7", lw=1, ls=(0, (4, 2))))
         else:
@@ -327,7 +332,7 @@ def sheet_overview(pdf, d, coast, geo):
         f"Noordrichting: convergentie {ga['meridiaanconvergentie_graden']:.2f} gr",
     ]
     text_block(bg, legend_y - 3, lines, fs=6.6, lh=3.9)
-    masterplan_inset(bg, 92)
+    masterplan_inset(bg, 92, render=d.code == "DO")
     title_block(bg, d, f"{d.code}-01", "Overzicht zoekgebied en havenligging", "1:40.000")
     pdf.savefig(f)
     plt.close(f)
@@ -335,14 +340,14 @@ def sheet_overview(pdf, d, coast, geo):
 
 def sheet_layout(pdf, d, phase_note=None, markup=None, blad="02", naam="Havenindeling"):
     f, bg = fig_new()
-    center = H.P(-400, 50)
-    ax = map_axes(f, MAP, center, 10000)
+    center = d.center or H.P(-400, 50)
+    ax = map_axes(f, MAP, center, d.scale)
     grid(ax, 1000)
-    draw_design(ax, d, fs=6.2)
-    north_scale(ax, 10000, 1000)
+    draw_design(ax, d, fs=6.2 if d.scale <= 10000 else 5.6)
+    north_scale(ax, d.scale, 1000)
     if markup:
         for nr, (u, v, r, txt) in enumerate(markup, 1):
-            x, y = H.P(u, v)
+            x, y = d.P(u, v)
             ax.add_patch(plt.Circle((x, y), r, fill=False, ec="red", lw=2.2, zorder=60))
             ax.text(x + r * 0.75, y + r * 0.75, str(nr), fontsize=11, weight="bold", color="white",
                     bbox=dict(boxstyle="circle", fc="red", ec="white"), zorder=61, clip_on=True)
@@ -368,25 +373,25 @@ def sheet_layout(pdf, d, phase_note=None, markup=None, blad="02", naam="Havenind
         if phase_note:
             lines += phase_note
         y = text_block(bg, y - 3, lines, fs=6.3, lh=3.8)
-    masterplan_inset(bg, 92)
-    title_block(bg, d, f"{d.code}-{blad}", naam, "1:10.000")
+    masterplan_inset(bg, 92, render=d.code == "DO")
+    title_block(bg, d, f"{d.code}-{blad}", naam, f"1:{nl(d.scale)}")
     pdf.savefig(f)
     plt.close(f)
 
 
 def sheet_phases(pdf, d):
     f, bg = fig_new()
-    center = H.P(-400, 50)
+    center = d.center or H.P(-400, 50)
     panels = [(15, 302, 305, 277), (325, 302, 305, 277), (15, 15, 305, 277)]
     for (x, y, w, h), ph, jr in zip(panels, (1, 2, 3), (2025, 2035, 2045)):
-        ax = map_axes(f, (x, y, w, h), center, 20000)
+        ax = map_axes(f, (x, y, w, h), center, 2 * d.scale)
         draw_design(ax, d, labels=False, phase=ph, anchors=False, dims=False)
         ax.text(0.02, 0.97, f"Fase {ph}  -  {jr}", transform=ax.transAxes, fontsize=13, weight="bold", va="top",
                 color="white", path_effects=HALO)
         ax.text(0.02, 0.90, ["2 containerligplaatsen, 800 m kade, 72 ha", "3 containerligplaatsen, 1.200 m kade, 108 ha",
                              "4 containerligplaatsen, 1.600 m kade, 144 ha"][ph - 1],
                 transform=ax.transAxes, fontsize=8, va="top", color="white", path_effects=HALO)
-        north_scale(ax, 20000, 1000)
+        north_scale(ax, 2 * d.scale, 2000)
     rows = [("Onderdeel", "Fase 1 - 2025", "Fase 2 - 2035", "Fase 3 - 2045"),
             ("Containerligplaatsen", "2 (C1-C2)", "3 (+C3)", "4 (+C4)"),
             ("Containerkade", "800 m", "1.200 m", "1.600 m"),
@@ -409,15 +414,15 @@ def sheet_phases(pdf, d):
             bg.text(xx + 1.5, y0 - 9 * (r + 1) + 4.5, txt, fontsize=7, va="center", weight="bold" if r == 0 else None)
             xx += cw[c]
     text_block(bg, y0 - 9 * len(rows) - 8, [
-        "De containerkade groeit zuidwaarts langs de voorhaven (zoals vinger 6 in het",
-        "masterplan); baggeren en kadebouw voor F2/F3 gebeuren aan het zuideinde, buiten de",
+        "De containerkade groeit zuidwaarts het insteekbekken in (vinger 6 uit de render);",
+        "baggeren en kadebouw voor F2/F3 gebeuren aan het doodlopende zuideinde, buiten de",
         "vaarroute naar C1/C2. Toekomstige onderdelen zijn gestippeld weergegeven; fase 4",
         "(reserve) volgt het masterplan: insteek- en hoofdbekken west, westkade vinger 6.",
         "Golfbrekers, geul, draaikom, LNG-steiger en leidingcorridors worden in F1 op",
         "eindmaat aangelegd (latere uitbreiding is onevenredig duur, rapport par. 10).",
     ], fs=7.2, lh=4.4, x=x0)
     y = legend(bg, PH - 14, d, fs=6.6)
-    title_block(bg, d, f"{d.code}-03", "Fasering 2025 - 2035 - 2045", "1:20.000")
+    title_block(bg, d, f"{d.code}-03", "Fasering 2025 - 2035 - 2045", f"1:{nl(2 * d.scale)}")
     pdf.savefig(f)
     plt.close(f)
 
@@ -465,8 +470,10 @@ def sheet_tables(pdf, d, geo):
     y = table(bg, 15, y - 14, ("Punt", "Omschrijving", "E (m)", "N (m)", "Lat", "Lon"), [16, 92, 40, 44, 55, 56], an,
               title="Ontwerpankerpunten - EPSG:31984 (E/N) en WGS84 (lat/lon)")
     text_block(bg, y - 6, [
-        f"Lokaal havenstelsel: oorsprong A1, u-as azimut {H.AZ_U:.0f} gr (zeewaarts), v-as azimut {H.AZ_U - 90:.0f} gr.",
-        f"E = {nl(H.O[0], 1)} + u sin({H.AZ_U:.0f}) + v sin({H.AZ_U - 90:.0f});  N = {nl(H.O[1], 1)} + u cos({H.AZ_U:.0f}) + v cos({H.AZ_U - 90:.0f}).",
+        "Geometrie overgetrokken van de Porto Central-render (Referentie/Porto_Central_render.png), pixel (x, y omlaag):",
+        f"schaal {nl(d.info['render_schaal_m_per_px'], 3)} m/px, draaiing {nl(d.info['render_draaiing_graden'], 1)} gr; render (812,5; 275) = A1. "
+        f"Kustfit: gemiddeld {nl(d.info['render_kustfit_gem_afwijking_m'])} m.",
+        "E = a x + b y + c;  N = d x + e y + f  met a..f in Maatstaat/maatstaat.json (render_affine).",
         "Alle maten in de DXF staan direct in projectcoördinaten; er is geen lokale verschuiving meer nodig.",
     ], fs=8.4, lh=5.2, x=15)
     # georeferentie
@@ -510,9 +517,9 @@ def so_markup(d):
     ]
 
 
-def masterplan_inset(bg, y_bottom, width=None):
-    """Vormreferentie: uitsnede Porto Central-masterplan 2016 p. 9 in het rechterpaneel."""
-    path = os.path.join(H.ROOT, "Referentie", "Porto_Central_masterplan_2016_p9_uitsnede.png")
+def masterplan_inset(bg, y_bottom, width=None, render=False):
+    """Vormreferentie: uitsnede Porto Central-masterplan 2016 p. 9 (SO) of de render (DO) in het rechterpaneel."""
+    path = os.path.join(H.ROOT, "Referentie", "Porto_Central_render.png" if render else "Porto_Central_masterplan_2016_p9_uitsnede.png")
     if not os.path.exists(path):
         return y_bottom
     im = np.asarray(Image.open(path).convert("RGB"))
@@ -521,7 +528,8 @@ def masterplan_inset(bg, y_bottom, width=None):
     bg.imshow(im, extent=(PANEL_X + 1, PANEL_X + 1 + w, y_bottom, y_bottom + h), zorder=5)
     bg.set_xlim(0, PW)
     bg.set_ylim(0, PH)
-    bg.text(PANEL_X + 1, y_bottom + h + 2, "Vormreferentie: Porto Central masterplan 2016, p. 9 (ANTT)", fontsize=7, weight="bold")
+    bg.text(PANEL_X + 1, y_bottom + h + 2, "Referentie: Porto Central render (overgetrokken voor het DO)" if render
+            else "Vormreferentie: Porto Central masterplan 2016, p. 9 (ANTT)", fontsize=7, weight="bold")
     bg.text(PANEL_X + 1, y_bottom - 2, "6 containers -> containervinger | 10 graan -> noordkade | 7/8 -> RoRo + reserve\n"
             "9 tankpark -> LNG + centrale | 18 LNG -> LNG-steiger | 11/14 dammen en ingang", fontsize=5.8, va="top")
     return y_bottom + h
@@ -538,6 +546,8 @@ def make_pdf(d, path, coast, geo):
             sheet_layout(pdf, d)
             sheet_phases(pdf, d)
             sheet_tables(pdf, d, geo)
+            if d.info.get("render_affine"):
+                sheet_overlay(pdf, d)
         info = pdf.infodict()
         info["Title"] = f"Haven_{d.code} - Havenontwerp Groep 1"
         info["Author"] = "Groep 1 - Atelier De Haven A"
@@ -567,3 +577,42 @@ def compress_pdf(path, quality=85):
                 if k in raw:
                     del raw[k]
     pdf.save(path, compress_streams=True)
+
+
+def sheet_overlay(pdf, d):
+    """DO-05: de render van Porto Central half doorzichtig op de luchtfoto, met de DO-contouren erop."""
+    from matplotlib.transforms import Affine2D
+    f, bg = fig_new()
+    ax = map_axes(f, MAP, d.center, d.scale)
+    grid(ax, 1000)
+    A = d.info["render_affine"]
+    im = np.asarray(Image.open(os.path.join(H.ROOT, "Referentie", H.RENDER_FILE)).convert("RGB"))
+    tr = Affine2D(np.array([[A[0], A[1], A[4]], [A[2], A[3], A[5]], [0, 0, 1]])) + ax.transData
+    ax.imshow(im, extent=(0, im.shape[1], im.shape[0], 0), transform=tr, alpha=0.72, zorder=1, interpolation="bilinear")
+    for it in d.items:
+        g = it["geom"]
+        if g.geom_type in ("Polygon", "MultiPolygon") and it["layer"] not in ("HV-SCHIP", "HV-ANKERPUNT"):
+            for xy in poly_xy(g):
+                ax.add_patch(MPoly(xy, closed=True, fill=False, ec=H.LAYERS[it["layer"]][1], lw=1.0, zorder=10))
+        elif g.geom_type == "LineString" and it["layer"] in ("HV-KADE", "HV-GEUL-AS"):
+            xy = np.array(g.coords)
+            ax.plot(xy[:, 0], xy[:, 1], color="white", lw=1.0, zorder=10)
+    north_scale(ax, d.scale, 1000)
+    y = legend(bg, PH - 14, d, fs=6.6)
+    text_block(bg, y - 3, [
+        "**Controle overtrek",
+        "De render is op schaal en op de echte kust gelegd:",
+        f"schaal {nl(d.info['render_schaal_m_per_px'], 3)} m per pixel, draaiing {nl(d.info['render_draaiing_graden'], 1)} gr;",
+        f"kustlijn render tegen waterlijn: gem. {nl(d.info['render_kustfit_gem_afwijking_m'])} m.",
+        "Gekleurde lijnen = definitief ontwerp (DO).",
+        "Afwijkingen van de render zijn bewust:",
+        "- havenmond 350 m vrij (render ca. 640 m);",
+        "- olie- en droge-bulksteigers (4, 5) vallen",
+        "  buiten het programma en zijn weggelaten;",
+        "- maten volgen het rekenboek.",
+        "In de DXF staat de render op laag HV-REFERENTIE",
+        "(uit); aanzetten om zelf verder over te trekken.",
+    ], fs=6.6, lh=4.0)
+    title_block(bg, d, f"{d.code}-05", "Overtrek Porto Central-render op luchtfoto", f"1:{nl(d.scale)}")
+    pdf.savefig(f)
+    plt.close(f)

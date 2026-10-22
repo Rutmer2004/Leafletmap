@@ -38,6 +38,24 @@ def write_dxf(d, path, coast):
                   dxfattribs={"layer": "HV-ONDERGROND"})
     msp.add_lwpolyline(list(coast.coords), dxfattribs={"layer": "HV-KUSTLIJN"})
 
+    # render van Porto Central als gerefereerde overtrek-ondergrond (laag HV-REFERENTIE, standaard uit)
+    if d.info.get("render_affine"):
+        import shutil
+        A = d.info["render_affine"]
+        w_px, h_px = H.RENDER_SIZE
+        src = os.path.join(H.ROOT, "Referentie", H.RENDER_FILE)
+        dst = os.path.join(os.path.dirname(path), "Ondergrond", H.RENDER_FILE)
+        shutil.copyfile(src, dst)
+        with open(dst[:-4] + ".pgw", "w") as f:  # world file (A, D, B, E, C, F) voor Map 3D / QGIS
+            f.write(f"{A[0]}\n{A[2]}\n{A[1]}\n{A[3]}\n{A[4] + 0.5 * A[0] + 0.5 * A[1]}\n{A[5] + 0.5 * A[2] + 0.5 * A[3]}\n")
+        lay = doc.layers.add("HV-REFERENTIE", color=8)
+        lay.description = "Porto Central render, overgetrokken voor het DO"
+        lay.off()
+        rdef = doc.add_image_def(filename=".\\Ondergrond\\" + H.RENDER_FILE, size_in_pixel=(w_px, h_px))
+        ins = (A[1] * h_px + A[4], A[3] * h_px + A[5])  # pixel (0, hoogte) = linksonder
+        msp.add_image(rdef, insert=ins, size_in_units=(w_px * H.RENDER_S, h_px * H.RENDER_S),
+                      rotation=d.info["render_draaiing_graden"], dxfattribs={"layer": "HV-REFERENTIE"})
+
     style = {"dashed": "DASHED", "dotted": "DOT", "dashdot": "DASHDOT"}
     for it in d.items:
         g, lay = it["geom"], it["layer"]
@@ -106,17 +124,17 @@ def write_dxf(d, path, coast):
 
 def _layout(doc, d):
     """Papieren A1-blad 1:10.000 met viewport, kader, titelblok en legenda."""
-    lay = doc.layouts.new(f"{d.code}-02 A1 1-10000")
+    lay = doc.layouts.new(f"{d.code}-02 A1 1-{d.scale}")
     lay.page_setup(size=(841, 594), margins=(0, 0, 0, 0), units="mm")
-    cx, cy = H.P(-250, -150)
-    lay.add_viewport(center=(325, 297), size=(620, 574), view_center_point=(cx, cy), view_height=5740)
+    cx, cy = d.center or H.P(-250, -150)
+    lay.add_viewport(center=(325, 297), size=(620, 574), view_center_point=(cx, cy), view_height=574 * d.scale / 1000)
     lay.add_lwpolyline([(10, 10), (831, 10), (831, 584), (10, 584)], close=True)
     lay.add_lwpolyline([(640, 10), (640, 584)])
     y = 570
     title = "SCHETSONTWERP (SO)" if d.code == "SO" else "DEFINITIEF ONTWERP (DO)"
     for t, h in [("Havenontwerp Groep 1 - Porto Central, Presidente Kennedy (ES)", 6), (title, 8),
                  (f"Blad {d.code}-02  Havenindeling  |  versie {'1.0' if d.code == 'SO' else '2.0'}  |  22-10-2026", 4),
-                 ("Schaal 1:10.000 (A1)  |  noordpijl = grid-noord (verschil met ware noord 0,70 gr)", 3.5),
+                 (f"Schaal 1:{d.scale:,} (A1)  |".replace(",", ".") + "  noordpijl = grid-noord (verschil met ware noord 0,70 gr)", 3.5),
                  ("Stelsel: SIRGAS 2000 / UTM zone 24S, EPSG:31984, eenheid m", 3.5),
                  ("Hoogte/diepte: m t.o.v. MLWS (voorlopig; koppeling MLWS-DHN nog te verifiëren)", 3.5),
                  ("Kaartbron: Copernicus Sentinel-2 L2A, opname 03-07-2026, 10 m", 3.5),
@@ -138,8 +156,8 @@ def _layout(doc, d):
     # noordpijl
     lay.add_lwpolyline([(600, 540), (606, 520), (600, 525), (594, 520)], close=True)
     lay.add_text("N", height=8).set_placement((600, 545), align=TextEntityAlignment.BOTTOM_CENTER)
-    # schaalstok 0-1000 m = 100 mm
+    # schaalstok 0-1000 m
     for i in range(5):
         lay.add_lwpolyline([(30 + i * 20, 25), (50 + i * 20, 25), (50 + i * 20, 29), (30 + i * 20, 29)], close=True)
     lay.add_text("0", height=3).set_placement((30, 31), align=TextEntityAlignment.BOTTOM_CENTER)
-    lay.add_text("1.000 m", height=3).set_placement((130, 31), align=TextEntityAlignment.BOTTOM_CENTER)
+    lay.add_text(f"{d.scale // 10:,} m".replace(",", "."), height=3).set_placement((130, 31), align=TextEntityAlignment.BOTTOM_CENTER)

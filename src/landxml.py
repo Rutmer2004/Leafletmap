@@ -23,7 +23,7 @@ def _polys(g):
 def write_landxml(d, path):
     n = d.notes
     # vaarroute van geuleinde via havenmond naar de draaikom
-    route = [H.P(*n["eind"]), H.P(*n["M"]), H.P(*n["T"])]
+    route = [d.P(*n["eind"]), d.P(*n["M"]), d.P(*n["T"])]
     lines, sta = [], 0.0
     for a, b in zip(route[:-1], route[1:]):
         lng = math.dist(a, b)
