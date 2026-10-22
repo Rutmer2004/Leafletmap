@@ -22,7 +22,11 @@ def _rings(g):
     return []
 
 
+_UIT = [".", {}]
+
+
 def write_dxf(d, path, coast):
+    _UIT[0], _UIT[1] = os.path.dirname(path) or ".", {}
     doc = ezdxf.new("R2018", setup=True)
     _template(doc)
     doc.units = units.M
@@ -61,8 +65,20 @@ def write_dxf(d, path, coast):
                       rotation=d.info["render_draaiing_graden"], dxfattribs={"layer": "HV-REFERENTIE"})
 
     style = {"dashed": "DASHED", "dotted": "DOT", "dashdot": "DASHDOT"}
+    from shapely.geometry import box as sbox
+    beeld = sbox(*[H.IMG_BOUNDS[i] for i in (0, 1, 2, 3)])
     for it in d.items:
         g, lay = it["geom"], it["layer"]
+        if lay == "HV-ANKERPUNT":
+            continue          # ankerpunten alleen in de maatstaat (DO-04)
+        if lay == "HV-DIEPTELIJN":
+            g = g.intersection(beeld)   # afknippen op de luchtfoto
+            if g.is_empty:
+                continue
+            for part in getattr(g, "geoms", [g]):
+                if part.geom_type == "LineString":
+                    msp.add_lwpolyline(list(part.coords), dxfattribs={"layer": lay})
+            continue
         at = {"layer": lay}
         if it.get("style"):
             at["linetype"] = style[it["style"]]
@@ -87,13 +103,6 @@ def write_dxf(d, path, coast):
     _teksten_model(doc, msp, d)
     if d.code == "DO":
         toets_lagen(doc, msp, d)
-
-    # ankerpunten met coördinaat
-    doc.layers.add("HV-ANKERPUNT-TEKST", color=1).description = "Ankerpuntcoördinaten (alleen modelspace)"
-    for k, a in d.anchor.items():
-        msp.add_text(f"{k} E {a['E']:.1f}  N {a['N']:.1f}", height=20,
-                     dxfattribs={"layer": "HV-ANKERPUNT-TEKST", "style": STIJL}) \
-            .set_placement((a["E"] + 50, a["N"] - 40), align=TextEntityAlignment.TOP_LEFT)
 
     # coördinatenraster 1 km
     for x in range(286000, 318001, 1000):
@@ -162,20 +171,26 @@ def toets_lagen(doc, msp, d):
 
 
 def _template(doc):
-    """Blokken (A1-tekenblad, titelblok, wijzigingsblok, noordpijl), tekststijlen en lagen uit het NHL-template."""
+    """Blokken uit Template_NHL_Stenden_v1.dwt (layout A1_841x594): tekenblad, titelblok, wijzigingsblok,
+    onderschrift en overzichtskader; tekststijlen NLCS-ISO en BS."""
     from ezdxf.addons import Importer
     src = ezdxf.readfile(TEMPLATE)
     imp = Importer(src, doc)
-    imp.import_blocks(["SAL-TEKENBLAD_A1-SO", "TITELBLOK_BUREAUSCHMIDT", "WIJZIGINGSBLOK_BUREAUSCHMIDT", "Noordpijl BS 7.0"])
+    imp.import_blocks(["SAL-TEKENBLAD_A1-SO", "TITELBLOK_NHL", "WIJZIGINGSBLOK_NHL", "SAL-VERWIJZING_ONDERSCHRIFT-SO",
+                       "NHL_OVERZICHT"])
     imp.import_tables("styles", ["NLCS-ISO", "BS"])
-    imp.import_tables("layers", ["X-XX-AL-T18", "X-XX-AL-T25", "X-XX-AL-T35", "X-XX-AL-M", "X-XX-AL-VERWIJZING-S",
-                                 "X-XX-AL-TEKENBLAD-S", "X-XX-AL-TEKENBLAD_KADER-G", "X-XX-AL-TEKENBLAD_TITELBLOK-G",
-                                 "X-XX-AL-TEKENBLAD_VIEWPORT-G", "X-XX-AL-TEKENBLAD_LEGENDA-S",
-                                 "X-XX-AL-TEKENBLAD_SCHAALBALK-S", "X-XX-AL-ORIENTATIE-G"])
     imp.finalize()
     std = doc.styles.get("Standard").dxf.handle
     for _, ml in doc.mleader_styles:
         ml.dxf.text_style_handle = std
+    for naam, kleur in (("X-XX-AL-T18", 7), ("X-XX-AL-T25", 7), ("X-XX-AL-T35", 7), ("X-XX-AL-VERWIJZING-S", 7),
+                        ("X-XX-AL-TEKENBLAD-S", 7), ("X-XX-AL-TEKENBLAD_TITELBLOK-G", 7), ("X-XX-AL-TEKENBLAD_VIEWPORT-G", 7),
+                        ("X-XX-AL-TEKENBLAD_VIEWPORT_OVERZICHT-G", 7), ("X-XX-AL-TEKENBLAD_LEGENDA-S", 7),
+                        ("X-XX-AL-TEKENBLAD_SCHAALBALK-S", 7), ("X-XX-AL-ORIENTATIE-G", 7), ("X-XX-AL-LOGO", 7)):
+        if naam not in doc.layers:
+            doc.layers.add(naam, color=kleur)
+    for naam in ("X-XX-AL-TEKENBLAD_VIEWPORT-G", "X-XX-AL-TEKENBLAD_VIEWPORT_OVERZICHT-G"):
+        doc.layers.get(naam).dxf.plot = 0   # viewportranden niet plotten
 
 
 def _tekstlaag(doc, blad):
@@ -189,6 +204,8 @@ def _teksten_model(doc, msp, d):
     """Teksten, verwijslijnen en maatvoering uit annotatie.voor_ontwerp() in modelspace (wereldcoördinaten)."""
     ann = getattr(d, "ann", None) or Ann.voor_ontwerp(d)
     for blad, a in ann.items():
+        if blad != "02":
+            continue          # detailteksten staan in de layout van het detailblad (paperspace)
         lay = _tekstlaag(doc, blad)
         pl, f = a["plaatser"], a["scale"] / 1000.0
         for m in a["maat"]:
@@ -226,31 +243,88 @@ def _teksten_model(doc, msp, d):
                 msp.add_circle(q0, 0.5 * f, dxfattribs={"layer": lay})
 
 
+def _papier_teksten(lay, a):
+    """Teksten, verwijslijnen en maatvoering van een blad direct in de layout (papiermm)."""
+    for m in a["maat"]:
+        lay.add_line(m["A"], m["B"], dxfattribs={"layer": "X-XX-AL-T18"})
+        lay.add_text(m["tekst"], height=m["h"], rotation=m["rot"], dxfattribs={"layer": "X-XX-AL-T18", "style": STIJL}) \
+            .set_placement(m["pos"], align=TextEntityAlignment.MIDDLE_CENTER)
+    for p in a["labels"]:
+        laag = f"X-XX-AL-{p.laag}"
+        if "\n" in p.tekst:
+            mt = lay.add_mtext(p.tekst.replace("\n", "\\P"), dxfattribs={"layer": laag, "style": STIJL, "char_height": p.h})
+            mt.set_location((p.x, p.y), attachment_point=5)
+        else:
+            lay.add_text(p.tekst, height=p.h, dxfattribs={"layer": laag, "style": STIJL}) \
+                .set_placement((p.x, p.y), align=TextEntityAlignment.MIDDLE_CENTER)
+        if p.verwijs:
+            lay.add_line(p.verwijs[0], p.verwijs[1], dxfattribs={"layer": "X-XX-AL-VERWIJZING-S"})
+            lay.add_circle(p.verwijs[0], 0.5, dxfattribs={"layer": "X-XX-AL-VERWIJZING-S"})
+
+
 def _layout(doc, d, blad, naam, center, scale):
-    """A1-blad volgens het NHL-template: kader, titelblok, wijzigingsblok, viewport, legenda, noordpijl, schaalstok."""
+    """A1-blad volgens layout A1_841x594 van Template_NHL_Stenden_v1.dwt."""
+    import shutil
     import sheets as S
     van = 3 if d.code == "SO" else 10
     lay = doc.layouts.new(f"{d.code}-{blad} {naam} 1-{scale}".replace(",", ""))
     lay.page_setup(size=(841, 594), margins=(0, 0, 0, 0), units="mm")
-    for e in list(lay.query("VIEWPORT"))[1:]:
-        lay.delete_entity(e)
-    lay.add_blockref("SAL-TEKENBLAD_A1-SO", (0, 0), dxfattribs={"layer": "X-XX-AL-TEKENBLAD-S"})
     schaal = f"1:{scale:,}".replace(",", ".")
-    tb = lay.add_blockref("TITELBLOK_BUREAUSCHMIDT", (831, 10), dxfattribs={"layer": "X-XX-AL-TEKENBLAD-S"})
+    lay.add_blockref("SAL-TEKENBLAD_A1-SO", (0, 0), dxfattribs={"layer": "X-XX-AL-TEKENBLAD-S"})
+    tb = lay.add_blockref("TITELBLOK_NHL", (831, 10), dxfattribs={"layer": "X-XX-AL-TEKENBLAD_TITELBLOK-G"})
     tb.add_auto_attribs(S.titelblok_waarden(d, f"{d.code}-{blad}", naam, schaal, int(blad), van))
-    wb = lay.add_blockref("WIJZIGINGSBLOK_BUREAUSCHMIDT", (643, 95.8), dxfattribs={"layer": "X-XX-AL-TEKENBLAD-S"})
+    wb = lay.add_blockref("WIJZIGINGSBLOK_NHL", (643, 100.6), dxfattribs={"layer": "X-XX-AL-TEKENBLAD_TITELBLOK-G"})
     wb.add_auto_attribs(S.wijziging_waarden(d))
+    on = lay.add_blockref("SAL-VERWIJZING_ONDERSCHRIFT-SO", (30, 18.8), dxfattribs={"layer": "X-XX-AL-VERWIJZING-S"})
+    on.add_auto_attribs({"OMSCHRIJVING": naam, "SCHAAL": f"{scale:,}".replace(",", ".")})
+    ov = lay.add_blockref("NHL_OVERZICHT", (643, 125.6), dxfattribs={"layer": "X-XX-AL-TEKENBLAD_LEGENDA-S"})
+    ov.add_auto_attribs({"OVERZICHT": "Overzicht", "SCHAAL": f"{Ann.OVERZICHT_SCHAAL:,}".replace(",", ".")})
+    # NHL-logo als afbeelding (het logo in het template is een OLE-object)
+    logo_src = os.path.join(H.ROOT, "Referentie", "nhl_logo.png")
+    if os.path.exists(logo_src):
+        dst = os.path.join(_UIT[0], "Ondergrond", "nhl_logo.png")
+        if not os.path.exists(dst):
+            shutil.copyfile(logo_src, dst)
+        if "nhl_logo" not in _UIT[1]:
+            _UIT[1]["nhl_logo"] = doc.add_image_def(filename=".\\Ondergrond\\nhl_logo.png", size_in_pixel=(1366, 1200))
+        x, y, w, h = Ann.LOGO
+        lay.add_image(_UIT[1]["nhl_logo"], insert=(x, y), size_in_units=(w, h), rotation=0,
+                      dxfattribs={"layer": "X-XX-AL-LOGO"})
+    # hoofdviewport en overzichtsviewport
     x, y, b, h = Ann.MAP
+    bevroren = [l.dxf.name for l in doc.layers
+                if (l.dxf.name.startswith("HV-TEKST-") and l.dxf.name != f"HV-TEKST-{blad}")
+                or l.dxf.name in ("HV-RASTER", "HV-TEKST", "HV-MAAT", "HV-D-TEKST")
+                or l.dxf.name.startswith(("HV-TOETS-", "HV-GOLF-"))
+                or (blad == "02" and l.dxf.name.startswith("HV-D-"))]
     vp = lay.add_viewport(center=(x + b / 2, y + h / 2), size=(b, h), view_center_point=center,
                           view_height=h * scale / 1000, dxfattribs={"layer": "X-XX-AL-TEKENBLAD_VIEWPORT-G"})
-    vp.frozen_layers = [l.dxf.name for l in doc.layers
-                        if (l.dxf.name.startswith("HV-TEKST-") and l.dxf.name != f"HV-TEKST-{blad}")
-                        or l.dxf.name in ("HV-ANKERPUNT-TEKST", "HV-RASTER", "HV-TEKST", "HV-MAAT", "HV-D-TEKST")
-                        or l.dxf.name.startswith(("HV-TOETS-", "HV-GOLF-"))
-                        or (blad == "02" and l.dxf.name.startswith("HV-D-"))]
+    vp.frozen_layers = bevroren
+    ox, oy, ob, oh = Ann.OVERZICHT
+    oc = (d.center[0] + 6000, d.center[1] - 3000)
+    vo = lay.add_viewport(center=(ox + ob / 2, oy + oh / 2), size=(ob, oh), view_center_point=oc,
+                          view_height=oh * Ann.OVERZICHT_SCHAAL / 1000,
+                          dxfattribs={"layer": "X-XX-AL-TEKENBLAD_VIEWPORT_OVERZICHT-G"})
+    vo.frozen_layers = [l.dxf.name for l in doc.layers if l.dxf.name.startswith(("HV-TEKST", "HV-D-", "HV-TOETS-", "HV-GOLF-",
+                                                                                  "HV-DIEPTELIJN", "HV-RASTER"))]
+    f = 1000 / Ann.OVERZICHT_SCHAAL     # uitsnede van dit blad als rode rechthoek in het overzicht
+    bw, bh = b * scale / 1000, h * scale / 1000
+    px = lambda X, Y: (ox + ob / 2 + (X - oc[0]) * f, oy + oh / 2 + (Y - oc[1]) * f)
+    hoek = [px(center[0] - bw / 2, center[1] - bh / 2), px(center[0] + bw / 2, center[1] - bh / 2),
+            px(center[0] + bw / 2, center[1] + bh / 2), px(center[0] - bw / 2, center[1] + bh / 2)]
+    lay.add_lwpolyline(hoek, close=True, dxfattribs={"layer": "X-XX-AL-TEKENBLAD_LEGENDA-S", "color": 1})
+    # teksten van detailbladen in de layout zelf
+    a = getattr(d, "ann", {}).get(blad)
+    if a is not None and blad != "02":
+        _papier_teksten(lay, a)
     # noordpijl en schaalstok
     nb = Ann.noordvak(Ann.MAP).bounds
-    lay.add_blockref("Noordpijl BS 7.0", ((nb[0] + nb[2]) / 2, nb[1] + 14), dxfattribs={"layer": "X-XX-AL-ORIENTATIE-G"})
+    cx, cy = (nb[0] + nb[2]) / 2, nb[1] + 8
+    lay.add_lwpolyline([(cx, cy + 18), (cx + 5, cy), (cx, cy + 4), (cx - 5, cy)], close=True,
+                       dxfattribs={"layer": "X-XX-AL-ORIENTATIE-G"})
+    lay.add_solid([(cx, cy + 18), (cx + 5, cy), (cx - 5, cy), (cx, cy + 4)], dxfattribs={"layer": "X-XX-AL-ORIENTATIE-G"})
+    lay.add_text("N", height=5, dxfattribs={"layer": "X-XX-AL-ORIENTATIE-G", "style": STIJL}) \
+        .set_placement((cx, cy + 19.5), align=TextEntityAlignment.BOTTOM_CENTER)
     sb = Ann.schaalvak(Ann.MAP).bounds
     bar_m = 1000 if scale >= 10000 else 500
     blen = bar_m / scale * 1000
@@ -260,33 +334,33 @@ def _layout(doc, d, blad, naam, center, scale):
         lay.add_lwpolyline(pts, close=True, dxfattribs={"layer": "X-XX-AL-TEKENBLAD_SCHAALBALK-S"})
         if i % 2 == 0:
             lay.add_solid([pts[0], pts[1], pts[3], pts[2]], dxfattribs={"layer": "X-XX-AL-TEKENBLAD_SCHAALBALK-S"})
-    for t, px, py, al in (("0", bx, by + 3, TextEntityAlignment.BOTTOM_CENTER),
-                          (f"{bar_m:,} m".replace(",", "."), bx + blen, by + 3, TextEntityAlignment.BOTTOM_CENTER),
-                          (f"schaal {schaal} (A1)", bx + blen / 2, by - 1.5, TextEntityAlignment.TOP_CENTER)):
-        lay.add_text(t, height=1.8, dxfattribs={"layer": "X-XX-AL-T18", "style": STIJL}).set_placement((px, py), align=al)
-    # legenda in de rechterkolom
-    yy = 578.0
+    for t, qx, qy, al in (("0", bx, by + 3, TextEntityAlignment.BOTTOM_CENTER),
+                          (f"{bar_m:,} m".replace(",", "."), bx + blen, by + 3, TextEntityAlignment.BOTTOM_CENTER)):
+        lay.add_text(t, height=1.8, dxfattribs={"layer": "X-XX-AL-T18", "style": STIJL}).set_placement((qx, qy), align=al)
+    # legenda en algemene gegevens
+    lx, ly, lb, lh = Ann.LEGENDA
+    yy = ly + lh - 2
     lay.add_text("LEGENDA", height=3.5, dxfattribs={"layer": "X-XX-AL-T35", "style": STIJL}) \
-        .set_placement((647, yy), align=TextEntityAlignment.TOP_LEFT)
+        .set_placement((lx + 2, yy), align=TextEntityAlignment.TOP_LEFT)
     yy -= 9
     used = {i["layer"] for i in d.items if blad != "02" or not i["layer"].startswith("HV-D-")}
     for name, (aci, _, fill, desc) in H.LAYERS.items():
-        if name not in used or name in ("HV-ONDERGROND", "HV-TEKST", "HV-RASTER", "HV-MAAT", "HV-GEUL-AS"):
+        if name not in used or name in ("HV-ONDERGROND", "HV-TEKST", "HV-RASTER", "HV-MAAT", "HV-GEUL-AS", "HV-ANKERPUNT"):
             continue
-        box_ = [(648, yy), (660, yy), (660, yy - 4), (648, yy - 4)]
+        box_ = [(lx + 3, yy), (lx + 15, yy), (lx + 15, yy - 4), (lx + 3, yy - 4)]
         lay.add_lwpolyline(box_, close=True, dxfattribs={"color": aci, "layer": "X-XX-AL-TEKENBLAD_LEGENDA-S"})
         if fill:
             hh = lay.add_hatch(color=aci, dxfattribs={"layer": "X-XX-AL-TEKENBLAD_LEGENDA-S"})
             hh.paths.add_polyline_path(box_)
         lay.add_text(desc, height=1.8, dxfattribs={"layer": "X-XX-AL-TEKENBLAD_LEGENDA-S", "style": STIJL}) \
-            .set_placement((664, yy - 2), align=TextEntityAlignment.MIDDLE_LEFT)
+            .set_placement((lx + 18, yy - 2), align=TextEntityAlignment.MIDDLE_LEFT)
         yy -= 5.6
-    for i, t in enumerate(["Stelsel: SIRGAS 2000 / UTM zone 24S (EPSG:31984), eenheid m",
+    for i, t in enumerate(["Algemene gegevens",
+                           "Stelsel: SIRGAS 2000 / UTM zone 24S (EPSG:31984), eenheid m",
                            "Hoogte: m t.o.v. MLWS (voorlopig; MLWS = MSL - 0,7 m)",
                            "Luchtfoto: Copernicus Sentinel-2 L2A, 03-07-2026 (Ondergrond/)",
-                           "Bathymetrie: GEBCO 2026 + Copernicus DEM; geen peiling",
-                           "Online ondergrond toevoegen: GEOMAPIMAGE (Map Aerial)"]):
+                           "Bathymetrie: GEBCO 2026 + Copernicus DEM; geen peiling"]):
         lay.add_text(t, height=1.8, dxfattribs={"layer": "X-XX-AL-T18", "style": STIJL}) \
-            .set_placement((647, 166 - i * 4.5), align=TextEntityAlignment.TOP_LEFT)
+            .set_placement((lx + 2, 279 - i * 3.8), align=TextEntityAlignment.TOP_LEFT)
 
 

@@ -20,14 +20,16 @@ Porto Central-masterplan als vormreferentie.
 | `Onderbouwing/Toelichting_SO_DO.docx` | Toelichting: ondergrond, ligging, SO, bespreking en besluitenlijst, DO, open punten, werkwijze in Civil 3D |
 | `webkaart/index.html` | Interactieve Leaflet-kaart met SO en DO op luchtfoto (dubbelklikken of via GitHub Pages) |
 
-## Tekenbladen (NHL-template)
+## Tekenbladen (NHL Stenden-template)
 
-Alle bladen (PDF en de DXF-layouts) gebruiken het A1-tekenblad, titelblok, wijzigingsblok en de noordpijl uit het
-schooltemplate `NHL-3D template.dwt` (onderdelen in `Referentie/NHL_template_onderdelen.dxf`, tekststijl NLCS-ISO).
+Alle bladen (PDF en de DXF-layouts) volgen layout `A1_841x594` van `Template_NHL_Stenden_v1.dwt`: A1-tekenblad,
+hoofdviewport (30-621 x 30-574 mm), onderschrift met schaal, legendavak, overzichtskaartje (1:200.000) met de
+uitsnede van het blad in rood, wijzigingsblok en `TITELBLOK_NHL` met het NHL Stenden-logo. De onderdelen staan in
+`Referentie/NHL_template_onderdelen.dxf`; het logo (in het template een OLE-object) als `Referentie/nhl_logo.png`.
 Teksten worden automatisch geplaatst zonder overlap (`src/labels.py`, `src/annotatie.py`): horizontaal of leesbaar
-langs de maatlijn (nooit op de kop), met een verwijslijn als er in het vlak geen ruimte is. Teksthoogtes volgens NLCS
-(1,8 / 2,5 / 3,5 mm op papier). In de DXF staan de teksten per blad op een eigen laag (`HV-TEKST-02`, `-06`, `-07`,
-`-08`); in elke layout zijn de teksten van de andere bladen bevroren.
+langs de maatlijn, met een verwijslijn als er in het vlak geen ruimte is; NLCS-hoogtes 1,8 / 2,5 / 3,5 mm.
+In de DXF staan de teksten van het havenplan in Model (laag `HV-TEKST-02`); de teksten van de detailbladen staan in
+de layout van dat blad, zodat Model rustig blijft. Ankerpunten staan alleen in de maatstaat (DO-04).
 
 ## Golftoets op een aangepaste DXF
 

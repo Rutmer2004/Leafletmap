@@ -9,7 +9,11 @@ from shapely.geometry import LineString, Polygon, box
 
 from labels import HOOGTE, Plaatser, leesbare_hoek, tekstmaat
 
-MAP = (20.0, 10.0, 623.0, 574.0)    # kaartvenster binnen het A1-kader van het NHL-template (mm)
+MAP = (30.0, 30.0, 591.0, 544.0)    # hoofdviewport van layout A1_841x594 uit Template_NHL_Stenden_v1.dwt (mm)
+OVERZICHT = (643.0, 130.6, 180.0, 125.0)   # overzichtsviewport (locatiekaart)
+LEGENDA = (631.0, 282.0, 189.6, 297.0)     # legendavak
+LOGO = (781.0, 17.5, 44.0, 38.6)           # NHL-logo in het titelblok (afbeelding)
+OVERZICHT_SCHAAL = 200000
 
 HOOFDVLAK = {"HV-CONTAINER", "HV-GRAAN", "HV-RORO", "HV-HAVENDIENST", "HV-LNG", "HV-CENTRALE", "HV-RESERVE",
              "HV-VOORHAVEN", "HV-GOLFBREKER", "HV-GEUL"}
@@ -55,7 +59,7 @@ def spec(it, soort):
     if lab in ALLEEN_DETAIL:
         return (lab, "T18", 6) if soort == "detail" else None
     if lay == "HV-ANKERPUNT":
-        return (lab, "T18", 9) if soort == "plan" else None
+        return None          # ankerpunten alleen in de tabel op DO-04 (ligging ligt vast in de coördinaten)
     if lay == "HV-SCHIP":
         return (lab, "T18", 7) if soort == "detail" and len(lab) <= 3 else None
     if lay == "HV-GEUL-AS":

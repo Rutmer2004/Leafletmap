@@ -20,10 +20,11 @@ from labels import HOOGTE
 
 PW, PH = 841.0, 594.0
 MAP = A.MAP                      # kaartvenster binnen het A1-kader van het NHL-template (x, y, b, h in mm)
-PANEL_X = 647.0                  # rechterkolom (boven titelblok en wijzigingsblok)
-KOLOM_ONDER = 178.0              # onderkant vrije ruimte in de rechterkolom
+PANEL_X = 633.0                  # legendavak rechtsboven (NHL-template)
+KOLOM_ONDER = 286.0              # onderkant legendavak
 TEMPLATE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Referentie",
                         "NHL_template_onderdelen.dxf")
+LOGO = os.path.join(os.path.dirname(TEMPLATE), "nhl_logo.png")
 TXT = "#111111"
 _BLAD = {"nr": 0, "van": 0}
 HALO = [pe.withStroke(linewidth=2.4, foreground="white")]
@@ -87,6 +88,8 @@ def ax_view(ax):
 def map_axes(f, rect_mm, center, scale):
     x, y, w, h = rect_mm
     ax = f.add_axes([x / PW, y / PH, w / PW, h / PH])
+    if not hasattr(f, "_view"):
+        f._view = (center, scale, rect_mm)
     sx, sy = w * scale / 1000.0, h * scale / 1000.0
     ax.set_xlim(center[0] - sx / 2, center[0] + sx / 2)
     ax.set_ylim(center[1] - sy / 2, center[1] + sy / 2)
@@ -257,7 +260,7 @@ def dim(ax, p1, p2, off, text, fs=6.5):
 def legend(bg, y_top, d, fs=7.2, detail=False):
     bg.text(PANEL_X + 2, y_top, "LEGENDA", fontsize=9, weight="bold", va="top")
     y = y_top - 7
-    skip = {"HV-ONDERGROND", "HV-TEKST", "HV-RASTER", "HV-MAAT", "HV-GEUL-AS"}
+    skip = {"HV-ONDERGROND", "HV-TEKST", "HV-RASTER", "HV-MAAT", "HV-GEUL-AS", "HV-ANKERPUNT"}
     if d.code == "SO":
         skip |= {"HV-SLEEPBOOT", "HV-CONFLICT"}
     else:
@@ -295,9 +298,10 @@ VERSIES = {
            ("02", "v6.1: terminals uitgewerkt (DO-06 t/m DO-08), overslagproces"),
            ("03", "v7.0: golftoets, dieptezones, bodemmodel GEBCO, LNG-veiligheidszones"),
            ("04", "v8.0: geul met bocht, zwaaiplaats 2 x LOA, golftoets met reflectie"),
-           ("05", "v8.1: NHL-template, teksten zonder overlap, rustiger tekenbeeld")],
+           ("05", "v8.1: teksten zonder overlap, rustiger tekenbeeld"),
+           ("06", "v8.2: NHL Stenden-template (A1), golftoets op DXF")],
     "SO": [("01", "v4.0: schetsontwerp op de Porto Central-render met bespreekpunten"),
-           ("02", "v4.1: NHL-template, teksten zonder overlap, rustiger tekenbeeld")],
+           ("02", "v4.2: NHL Stenden-template (A1), teksten zonder overlap")],
 }
 
 
@@ -308,18 +312,16 @@ def titelblok_waarden(d, blad, naam, schaal, nr, van):
     sit2 = " ".join(regels[1:]) if len(regels) > 1 else status
     return {"OPDRACHTGEVER": "NHL Stenden", "PROJECTNAAM1": "Havenontwerp Porto Central",
             "PROJECTNAAM2": "Presidente Kennedy (ES), Brazilië", "SITUATIE1": regels[0],
-            "SITUATIE2": sit2[:33],
-            "SCHAAL": schaal, "STATUS": d.code, "FORMAAT": "A1", "PROJECTKNR": "Groep 1",
-            "TEKNR": f"HAVEN-{blad}", "BLADNR": f"{nr} van {van}", "VERSIE": d.version, "GETEKEND": "Groep 1",
-            "GECONTROLEERD": "-", "VRIJGAVE": "-", "STATUS_GR": ""}
+            "SITUATIE2": sit2[:33], "SCHAAL": schaal, "STATUS": d.code, "FORMAAT": "A1", "PROJECTNR": "Groep 1",
+            "PROJECTKNR": "Groep 1", "TEKNR": f"HAVEN-{blad}", "BLADNR": f"{nr} van {van}", "VERSIE": d.version,
+            "GETEKEND": "Groep 1", "GECONTROLEERD": "-", "VRIJGAVE": "-", "STATUS_GR": ""}
 
 
 def wijziging_waarden(d):
-    w = {}
-    for i, (_, t) in enumerate(VERSIES[d.code], 1):
-        w[f"WIJZIGINGEN{i}"] = t
-        w[f"DATUM{i}"] = DATE
-    for i in range(len(VERSIES[d.code]) + 1, 8):
+    """Het NHL-wijzigingsblok toont één regel: de laatste wijziging."""
+    nr, t = VERSIES[d.code][-1]
+    w = {"WIJZIGINGEN1": t, "DATUM1": DATE}
+    for i in range(2, 8):
         w[f"WIJZIGINGEN{i}"] = ""
         w[f"DATUM{i}"] = ""
     return w
@@ -337,36 +339,75 @@ def template_doc():
 
 
 def title_block(bg, d, blad, naam, schaal, extra=None):
-    """A1-kader, titelblok en wijzigingsblok uit het NHL-template + algemene gegevens in de rechterkolom."""
+    """A1-blad volgens Template_NHL_Stenden_v1.dwt (layout A1_841x594): kader, titelblok met logo, wijzigingsblok,
+    onderschrift onder het hoofdviewport en een overzichtskaartje (locatie) met de uitsnede van dit blad."""
     from ezdxf.addons.drawing import Frontend, RenderContext
     from ezdxf.addons.drawing.config import BackgroundPolicy, ColorPolicy, Configuration
     from ezdxf.addons.drawing.matplotlib import MatplotlibBackend
     _BLAD["nr"] += 1
+    f = bg.figure
     doc = template_doc()
     msp = doc.modelspace()
     for e in list(msp):
         msp.delete_entity(e)
-    kader = msp.add_blockref("SAL-TEKENBLAD_A1-SO", (0, 0))
-    tb = msp.add_blockref("TITELBLOK_BUREAUSCHMIDT", (831, 10))
+    ents = [msp.add_blockref("SAL-TEKENBLAD_A1-SO", (0, 0))]
+    tb = msp.add_blockref("TITELBLOK_NHL", (831, 10))
     tb.add_auto_attribs(titelblok_waarden(d, blad, naam, schaal, _BLAD["nr"], _BLAD["van"]))
-    wb = msp.add_blockref("WIJZIGINGSBLOK_BUREAUSCHMIDT", (643, 95.8))
+    wb = msp.add_blockref("WIJZIGINGSBLOK_NHL", (643, 100.6))
     wb.add_auto_attribs(wijziging_waarden(d))
-    cfg = Configuration(background_policy=BackgroundPolicy.WHITE, color_policy=ColorPolicy.BLACK)
-    Frontend(RenderContext(doc), MatplotlibBackend(bg, adjust_figure=False), config=cfg).draw_entities([kader, tb, wb])
+    on = msp.add_blockref("SAL-VERWIJZING_ONDERSCHRIFT-SO", (30, 18.8))
+    on.add_auto_attribs({"OMSCHRIJVING": naam, "SCHAAL": schaal.replace("1:", "") if schaal.startswith("1:") else schaal})
+    ov = msp.add_blockref("NHL_OVERZICHT", (643, 125.6))
+    ov.add_auto_attribs({"OVERZICHT": "Overzicht", "SCHAAL": nl(A.OVERZICHT_SCHAAL)})
+    ents += [tb, wb, on, ov]
+    cfg = Configuration(background_policy=BackgroundPolicy.WHITE, color_policy=ColorPolicy.COLOR_SWAP_BW)
+    Frontend(RenderContext(doc), MatplotlibBackend(bg, adjust_figure=False), config=cfg).draw_entities(ents)
     bg.set_xlim(0, PW)
     bg.set_ylim(0, PH)
     bg.set_aspect("auto")
     bg.axis("off")
+    if os.path.exists(LOGO):
+        x, y, w, h = A.LOGO
+        bg.imshow(np.asarray(Image.open(LOGO).convert("RGB")), extent=(x, x + w, y, y + h), zorder=5)
+        bg.set_xlim(0, PW)
+        bg.set_ylim(0, PH)
+    overzicht(f, d)
     rows = [
         "**Algemene gegevens",
         "Stelsel: SIRGAS 2000 / UTM zone 24S (EPSG:31984), eenheid m",
         "Hoogte: m t.o.v. MLWS (voorlopig; MLWS = MSL - 0,7 m)",
         "Luchtfoto: Copernicus Sentinel-2 L2A, 03-07-2026, 10 m",
         "Bathymetrie: GEBCO 2026 + Copernicus DEM; geen peiling",
-        f"Atelier De Haven A, NHL Stenden | {DATE} | schaal {schaal}",
     ] + [f"{k}: {v}" for k, v in (extra or [])]
-    text_block(bg, 137.0 + 4.0 * len(rows) + 3, rows, fs=fs_pt(1.8), lh=4.0)
-    return 140.0
+    text_block(bg, 279.0, rows, fs=fs_pt(1.8), lh=3.8)
+    return 286.0
+
+
+def overzicht(f, d):
+    """Locatiekaartje in het overzichtsvak: luchtfoto, kust, haven en de uitsnede van dit blad (rood)."""
+    x, y, w, h = A.OVERZICHT
+    sc = A.OVERZICHT_SCHAAL
+    c = (d.center[0] + 6000, d.center[1] - 3000)
+    ax = map_axes(f, (x, y, w, h), c, sc)
+    for it in d.items:
+        if it["layer"] in ("HV-GOLFBREKER", "HV-CONTAINER", "HV-GRAAN", "HV-RORO", "HV-LNG", "HV-CENTRALE", "HV-BAGGER",
+                           "HV-VOORHAVEN", "HV-GEUL") and it["phase"] <= 3:
+            for xy in poly_xy(it["geom"]):
+                ax.add_patch(MPoly(xy, closed=True, fc=H.LAYERS[it["layer"]][1], ec="none", alpha=0.9, zorder=3))
+    v = getattr(f, "_view", None)
+    if v and v[1] < sc:
+        (cx, cy), s_, (_, _, rw, rh) = v
+        bw, bh = rw * s_ / 1000, rh * s_ / 1000
+        ax.add_patch(Rectangle((cx - bw / 2, cy - bh / 2), bw, bh, fill=False, ec="#d00000", lw=1.2, zorder=10))
+    for sp in ax.spines.values():
+        sp.set_visible(False)
+    top = top_axes(f)
+    blen = 10000 / sc * 1000          # 10 km
+    bx, by = 780.7, 122.4
+    for i in range(4):
+        top.add_patch(Rectangle((bx + i * blen / 4, by), blen / 4, 1.5, fc=TXT if i % 2 == 0 else "white", ec=TXT, lw=0.4))
+    for t, px in (("0", bx), ("10 km", bx + blen)):
+        top.text(px, by + 2.2, t, fontsize=fs_pt(1.8), ha="center", va="bottom", color=TXT)
 
 
 def text_block(bg, y, lines, fs=6.8, lh=4.2, title=None, x=None):
@@ -414,7 +455,7 @@ def sheet_overview(pdf, d, coast, geo):
     extra.append(("Haven (DO)" if d.code == "DO" else "Haven (SO)", SP(*d.center), "T25", 1))
     teken_ann(f, A.annoteer(d, center, 50000, MAP, "overzicht", extra=extra, dims=False))
     north_scale(ax, 50000, 5000)
-    legend_y = legend(bg, PH - 14, d, fs=6.6)
+    legend_y = legend(bg, PH - 16, d, fs=6.6)
     a1 = d.anchor["A1"]
     gs = geo["_gshhs"]
     ga = geo["_afstand"]
@@ -445,7 +486,7 @@ def sheet_layout(pdf, d, phase_note=None, markup=None, blad="02", naam="Havenind
     center = d.center or H.P(-400, 50)
     ax = map_axes(f, MAP, center, d.scale)
     grid(ax, 1000)
-    draw_design(ax, d)
+    draw_design(ax, d, anchors=False)
     north_scale(ax, d.scale, 1000)
     ann = d.ann["02"] if not markup else None
     if markup:
@@ -462,7 +503,7 @@ def sheet_layout(pdf, d, phase_note=None, markup=None, blad="02", naam="Havenind
             res.append(sbox(px - 5, py - 5, px + 5, py + 5))
         ann = A.annoteer(d, center, d.scale, MAP, "plan", gereserveerd=res)
     teken_ann(f, ann)
-    y = legend(bg, PH - 14, d, fs=6.6)
+    y = legend(bg, PH - 16, d, fs=6.6)
     m = d.m
     if markup:
         lines = ["**Bespreekpunten SO (zie rode markering)"] + [f"{i}. {t[3]}" for i, t in enumerate(markup, 1)]
@@ -520,7 +561,7 @@ def sheet_detail(pdf, d, blad, naam, center, scale, lines):
     draw_design(ax, d, anchors=False, detail=True)
     north_scale(ax, scale, 500)
     teken_ann(f, d.ann[blad])
-    y = legend(bg, PH - 14, d, fs=6.2, detail=True)
+    y = legend(bg, PH - 16, d, fs=6.2, detail=True)
     text_block(bg, y - 3, lines, fs=6.6, lh=4.0)
     title_block(bg, d, f"{d.code}-{blad}", naam, f"1:{nl(scale)}")
     pdf.savefig(f)
@@ -595,7 +636,7 @@ def detail_lines(d, blad):
 def sheet_phases(pdf, d):
     f, bg = fig_new()
     center = d.center or H.P(-400, 50)
-    panels = [(20, 297, 311, 287), (332, 297, 311, 287), (20, 10, 311, 287)]
+    panels = [(30, 304, 293, 270), (328, 304, 293, 270), (30, 30, 293, 270)]
     for (x, y, w, h), ph, jr in zip(panels, (1, 2, 3), (2025, 2035, 2045)):
         ax = map_axes(f, (x, y, w, h), center, 2 * d.scale)
         draw_design(ax, d, phase=ph, anchors=False)
@@ -617,7 +658,7 @@ def sheet_phases(pdf, d):
             ("LNG", "steiger + 3 tanks", "doorzet 6 mln m3", "8 mln m3; N-1 besluit"),
             ("Centrale", "eindcapaciteit", "-", "-"),
             ("Golfbrekers + geul", "volledig", "onderhoud", "onderhoud")]
-    x0, y0 = 340, 280
+    x0, y0 = 336, 285
     cw = [66, 52, 52, 52]
     bg.text(x0, y0 + 2, "Fasering (rekenboek Containers / Overige terminals)", fontsize=10, weight="bold")
     for r, row in enumerate(rows):
@@ -634,7 +675,7 @@ def sheet_phases(pdf, d):
         "Golfbrekers, geul, draaikom, LNG-steiger en leidingcorridors worden in F1 op",
         "eindmaat aangelegd (latere uitbreiding is onevenredig duur, rapport par. 10).",
     ], fs=7.2, lh=4.4, x=x0)
-    y = legend(bg, PH - 14, d, fs=6.6)
+    y = legend(bg, PH - 16, d, fs=6.6)
     title_block(bg, d, f"{d.code}-03", "Fasering 2025 - 2035 - 2045", f"1:{nl(2 * d.scale)}")
     pdf.savefig(f)
     plt.close(f)
@@ -685,10 +726,10 @@ def sheet_tables(pdf, d, geo):
         rows += [("Baggervolume zone 1/2/3", " / ".join(nl(gw[f'zone{z}']['volume'] / 1e6, 1) for z in (1, 2, 3)) + " mln m3",
                   "celmethode GEBCO/DEM", "indicatief"),
                  ("Besparing dieptezones", f"{nl(gw['besparing_dieptezones_m3'] / 1e6, 2)} mln m3", "t.o.v. overal -18,20", "")]
-    y = table(bg, 26, PH - 24, ("Onderdeel", "Gemeten in DO-tekening", "Rekenboek", "Status"), [78, 75, 92, 58], rows,
+    y = table(bg, 32, PH - 24, ("Onderdeel", "Gemeten in DO-tekening", "Rekenboek", "Status"), [78, 75, 92, 58], rows,
               title="Maatstaat DO - tekening tegen rekenboek")
     an = [(k, a["naam"], nl(a["E"], 1), nl(a["N"], 1), f"{a['lat']:.6f}", f"{a['lon']:.6f}") for k, a in d.anchor.items()]
-    y = table(bg, 26, y - 14, ("Punt", "Omschrijving", "E (m)", "N (m)", "Lat", "Lon"), [16, 92, 40, 44, 55, 56], an,
+    y = table(bg, 32, y - 14, ("Punt", "Omschrijving", "E (m)", "N (m)", "Lat", "Lon"), [16, 92, 40, 44, 55, 56], an,
               title="Ontwerpankerpunten - EPSG:31984 (E/N) en WGS84 (lat/lon)")
     text_block(bg, y - 6, [
         "Geometrie overgetrokken van de Porto Central-render (Referentie/Porto_Central_render.png), pixel (x, y omlaag):",
@@ -696,15 +737,15 @@ def sheet_tables(pdf, d, geo):
         f"Kustfit: gemiddeld {nl(d.info['render_kustfit_gem_afwijking_m'])} m.",
         "E = a x + b y + c;  N = d x + e y + f  met a..f in Maatstaat/maatstaat.json (render_affine).",
         "Alle maten in de DXF staan direct in projectcoördinaten; er is geen lokale verschuiving meer nodig.",
-    ], fs=8.4, lh=5.2, x=26)
+    ], fs=8.4, lh=5.2, x=32)
     # georeferentie
     ga, gs = geo["_afstand"], geo["_gshhs"]
     rows = [(n, f"{p['lat']:.6f}, {p['lon']:.6f}", nl(p["E"], 1), nl(p["N"], 1), f"{nl(p['afstand_tot_waterlijn_m'])} m")
             for n, p in list(geo.items())[:2]]
-    y2 = table(bg, 345, PH - 24, ("Bronpunt case", "WGS84", "E", "N", "tot waterlijn"), [78, 72, 46, 50, 46], rows,
+    y2 = table(bg, 335, PH - 24, ("Bronpunt case", "WGS84", "E", "N", "tot waterlijn"), [78, 72, 46, 50, 46], rows,
                title="Georeferentie - bronpunten en controles")
     rows = [(nl(r["N"]), nl(r["E_s2"]), nl(r["E_gshhs"]), nl(r["dE"])) for r in gs["rijen"]]
-    y2 = table(bg, 345, y2 - 12, ("N (m)", "E waterlijn S2", "E kust GSHHS", "dE (m)"), [52, 60, 60, 40], rows, rh=6.2,
+    y2 = table(bg, 335, y2 - 12, ("N (m)", "E waterlijn S2", "E kust GSHHS", "dE (m)"), [52, 60, 60, 40], rows, rh=6.2,
                title="Kustlijncontrole: Sentinel-2 tegen onafhankelijke GSHHS-kust (full)")
     lines = [
         f"Gemiddelde dE {nl(gs['gemiddeld_m'], 1)} m, sd {nl(gs['std_m'], 1)} m: geen systematische verschuiving.",
@@ -717,7 +758,7 @@ def sheet_tables(pdf, d, geo):
         "**In Civil 3D nog te doen: drie herkenningspunten tegen Map Aerial",
         "(GEOMAPIMAGE) meten en de afwijking in de maatstaat invullen.",
     ]
-    text_block(bg, y2 - 6, lines, fs=8.4, lh=5.2, x=345)
+    text_block(bg, y2 - 6, lines, fs=8.4, lh=5.2, x=335)
     title_block(bg, d, f"{d.code}-04", "Maatstaat, ankerpunten en georeferentie", "n.v.t.")
     pdf.savefig(f)
     plt.close(f)
@@ -817,7 +858,7 @@ def sheet_overlay(pdf, d):
             xy = np.array(g.coords)
             ax.plot(xy[:, 0], xy[:, 1], color="white", lw=1.0, zorder=10)
     north_scale(ax, d.scale, 1000)
-    y = legend(bg, PH - 14, d, fs=6.6)
+    y = legend(bg, PH - 16, d, fs=6.6)
     text_block(bg, y - 3, [
         "**Controle overtrek",
         "De render is op schaal en op de echte kust gelegd:",
@@ -848,7 +889,7 @@ def sheet_golf(pdf, d):
     import golven
     f, bg = fig_new()
     g = d.info["golftoets"]
-    panels = [((20, 299, 623, 285), 112.5), ((20, 10, 623, 285), 45.0)]
+    panels = [((30, 304, 591, 270), 112.5), ((30, 30, 591, 270), 45.0)]
     levels = [0, 0.1, 0.3, 0.5, 1.0, 1.5, 2.0, 3.5]
     cmap = plt.get_cmap("RdYlGn_r")
     for rect, frm in panels:
@@ -868,7 +909,7 @@ def sheet_golf(pdf, d):
                 transform=ax.transAxes, fontsize=11, weight="bold", va="top", color=TXT, path_effects=HALO)
         north_scale(ax, 14000, 1000)
     # kleurenschaal
-    y = PH - 14
+    y = PH - 16
     bg.text(PANEL_X + 2, y, "Hs aan de ligplaats (m) = Kd x Hs buiten", fontsize=9, weight="bold", va="top")
     y -= 9
     for i in range(len(levels) - 1):
@@ -920,7 +961,7 @@ def sheet_geul(pdf, d):
     z, tr = bodem._load()
     W, S, E, N = bodem.BBOX
     scale = 75000
-    rect = (20, 300, 623, 284)
+    rect = (30, 302, 591, 272)
     ax = f.add_axes([rect[0] / PW, rect[1] / PH, rect[2] / PW, rect[3] / PH])
     sx, sy = rect[2] * scale / 1000, rect[3] * scale / 1000
     rw = d.notes["geul_route"]
@@ -961,12 +1002,12 @@ def sheet_geul(pdf, d):
     from shapely.geometry import box as sbox
     teken_ann(f, A.annoteer(d, (cx, cy), scale, rect, "geul", extra=extra, dims=False,
                             gereserveerd=[sbox(rect[0], rect[1] + rect[3] - 16, rect[0] + 300, rect[1] + rect[3])]))
-    cb = f.add_axes([400 / PW, 312 / PH, 200 / PW, 5 / PH])
+    cb = f.add_axes([400 / PW, 314 / PH, 200 / PW, 5 / PH])
     f.colorbar(im, cax=cb, orientation="horizontal").set_label("diepte t.o.v. MLWS (m)", fontsize=7)
     cb.tick_params(labelsize=6.5)
     # lengteprofiel
     pr = np.array(d.info["geulprofiel"])
-    ap = f.add_axes([30 / PW, 40 / PH, 595 / PW, 230 / PH])
+    ap = f.add_axes([45 / PW, 45 / PH, 570 / PW, 225 / PH])
     km = pr[:, 0] / 1000
     ap.fill_between(km, pr[:, 1], -18.2, where=pr[:, 1] > -18.2, color="#e76f51", alpha=0.55, label="te baggeren (tot -18,20)")
     ap.plot(km, pr[:, 1], color="#08306b", lw=1.6, label="bestaande bodem (gem. over 2 km breedte)")
