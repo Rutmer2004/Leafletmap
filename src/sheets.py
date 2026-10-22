@@ -404,39 +404,52 @@ def sheet_detail(pdf, d, blad, naam, center, scale, lines):
 
 def detail_lines(d, blad):
     t = d.info.get("detail", {})
+    o = t.get("overslag", {})
     if blad == "06":
         sl = t["teu_grondslots_per_fase"]
-        return ["**Kengetallen containerterminal (rekenboek)",
-                f"Kade 1.600 m, 4 ligplaatsen van 400 m, apron 60 m",
+        return ["**Overslagketen containers",
+                "schip -> STS-kraan -> terminaltrekker -> RTG-stack",
+                "   -> vrachtauto (gate) of trein (RMG-railterminal)",
+                f"Kade: 5 STS x 30 box/u = {nl(o['kade_boxen_per_uur_per_schip'])} box/u per schip; apron 60 m",
                 f"STS-kranen F1/F2/F3: {t['sts_per_fase'][1]} / {t['sts_per_fase'][2]} / {t['sts_per_fase'][3]} (6 / 12 / 20)",
-                f"Stackzone bruto {nl(t['stack_bruto_m2'] / 1e4, 1)} ha (rekenboek netto 113,2 ha)",
-                f"TEU-grondslots (28 m2/slot): {nl(sl[1])} / {nl(sl[2])} / {nl(sl[3])}",
-                "   benodigd 12.133 / 20.222 / 40.444",
-                "RTG-blokken 24 m breed, rijpaden 12 m, blokken 300 m",
-                "Reefer- en legecontainervakken aan de landzijde",
-                f"Railterminal 4 sporen x {nl(t['railterminal_m'])} m met RMG",
-                "Gate met 12 rijstroken, douane/scan, truckparking",
-                "Kantoor en werkplaats aan de noordwestzijde"]
+                f"Stack: TEU-grondslots {nl(sl[1])} / {nl(sl[2])} / {nl(sl[3])}",
+                "   benodigd 12.133 / 20.222 / 40.444 (28 m2/slot)",
+                "**Landzijde 2045 (aannamen: 70% weg, 30% spoor)",
+                f"Piekuur {nl(o['truckbezoeken_piekuur'])} truckbezoeken (10% van piekdag)",
+                f"   -> {o['gate_rijstroken_per_richting']} rijstroken per richting nodig; getekend",
+                f"   {o['gate_rijstroken_per_richting'] + 1} in + {o['gate_rijstroken_per_richting'] + 1} uit (60 trucks/u/rijstrook)",
+                f"Pre-gate buffer 30 min = {o['buffer_plaatsen']} trucks = {nl(o['buffer_ha'], 1)} ha;",
+                f"   getekend {nl(t['pregate_ha'], 1)} ha aan de ringweg",
+                f"Spoor: {nl(o['treinen_per_dag'], 1)} treinen/piekdag; 5 sporen x 1.300 m =",
+                f"   10 treinposities x 4 = {nl(o['treincapaciteit_per_dag'])} treinen/dag (6 u per trein)",
+                "Reefer- en legecontainervakken aan de landzijde"]
     if blad == "07":
-        return ["**Kengetallen graan, RoRo en havendienst",
-                f"Graan: 8 silo's D 30 m x 40 m = {nl(t['graan_silo_m3'])} m3",
-                f"   = {nl(t['graan_silo_ton'])} t bij 0,75 t/m3 (piek 154.100 t)",
-                "   plus vlakke opslag; 2 shiploaders op 300 m kade",
-                "   ontvangst per vrachtauto en per spoor",
-                f"RoRo: parkeervakken {nl(t['roro_parkeer_m2'] / 1e4, 1)} ha = ca. {nl(t['roro_auto_capaciteit'])} auto's",
-                "   (piekvoorraad 7.479 auto's); ramp, inspectie, rijcircuit",
-                "Havendienst: havenkantoor/VTS, VTS-toren, loodsen,",
-                "   sleepdienst (3 sleepboten), brandweer"]
-    return ["**Kengetallen LNG en centrale",
-            "LNG: 3 x 180.000 m3 full containment in tankput, ruimte 4e tank",
-            "   hervergassing 4 x 33%, BOG-compressor, meetstation,",
-            "   controlekamer, fakkel (afstanden volgen uit de QRA)",
-            "   steiger: 3 laadarmen, 4 breasting- en 4 meerdolphins,",
-            "   pijpleidingbrug naar de tanks",
+        return ["**Graan (export): weg/spoor -> stortput -> silo ->",
+                "   transportband -> shiploader -> schip",
+                f"Piekdag oogst {nl(o['graan_piekdag_t'])} t (15% van jaar in een maand)",
+                f"   50% per vrachtauto = {nl(o['graan_trucks_per_dag'])} trucks/dag;",
+                f"   wachtplaats 4 u = {o['graan_wachtplaatsen']} trucks (getekend {o['graan_wachtplaatsen'] + 4})",
+                f"   50% per spoor = {nl(o['graan_treinen_per_week'], 1)} treinen/week van {nl(o['graan_trein_lengte_m'])} m",
+                "   -> 2 opstelsporen x 1.400 m langs de noordweg",
+                f"Silo's {nl(t['graan_silo_ton'])} t (piek 154.100 t); 2 shiploaders",
+                "**RoRo (import): schip -> ramp -> opstelzone -> PDI",
+                "   -> parkeervak -> laadstraat autotransporters",
+                f"Lossen 6.500 auto's / 150 per u = {nl(o['roro_lostijd_uur'], 1)} u; ca. {o['roro_chauffeurs']} chauffeurs",
+                f"Parkeervakken ca. {nl(t['roro_auto_capaciteit'])} auto's (piek 7.479)",
+                f"Autotransporters (8 auto's): ca. {nl(o['roro_transporters_per_dag'])} per piekdag",
+                "Havendienst: VTS, loodsen, 3 sleepboten, brandweer"]
+    return ["**LNG: schip -> laadarmen -> cryogene leiding",
+            "   -> tanks -> hervergassing -> centrale / gasnet",
+            f"Lossen 156.600 m3 / 10.000 m3/u + 8 u = {nl(o['lng_lostijd_uur'], 1)} u per call",
+            "3 laadarmen (2 vloeistof, 1 dampretour); losleiding",
+            "   en dampretour langs de zuidelijke dam (ca. 2 km)",
+            "Tanks 3 x 180.000 m3 in tankput, ruimte 4e tank",
+            f"Send-out gemiddeld {nl(o['lng_sendout_m3_per_uur'])} m3 LNG/u; hervergassing 4 x 33%",
+            "Fakkel, BOG-compressor, meetstation, controlekamer",
+            "   (veiligheidsafstanden volgen uit de QRA)",
             f"Centrale: 4 STEG-eenheden ca. 565 MW = {nl(t['centrale_eenheden_mw'])} MW",
-            "   (rekenvoorbeeld 2.256 MW, vermogen nog vast te stellen)",
-            "   hoogspanningsstation, gasontvangst, koelwaterpompen,",
-            "   waterbehandeling, kantoor"]
+            "   (rekenvoorbeeld 2.256 MW), hoogspanningsstation,",
+            "   koelwaterpompen, gasontvangst"]
 
 
 def sheet_phases(pdf, d):

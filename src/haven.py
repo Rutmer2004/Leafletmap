@@ -280,7 +280,7 @@ def build_do_render(coast=None, so=False):
     phi, err = fit_render_rotation(coast)
     A = render_affine(phi)
     d = Design("SO" if so else "DO", tf=lambda g: affinity.affine_transform(g, A))
-    d.version = "4.0" if so else "6.0"
+    d.version = "4.0" if so else "6.1"
     d.info = dict(render_schaal_m_per_px=RENDER_S, render_draaiing_graden=phi, render_kustfit_gem_afwijking_m=err,
                   render_affine=A, render_anker=RENDER_ANCHOR)
     s = RENDER_S
@@ -450,7 +450,9 @@ def build_do_render(coast=None, so=False):
         add_terminal_details(d, f6, roro, j0, j1, b0, b1, jt)
 
     # --- leidingen, wegen en spoor (ringweg zoals de render) ---------------------------------------------
-    d.add("HV-LEIDING", LineString([j0, (878, 474), (742, 481), (700, 474), (690, 468)]), style="dashed")
+    lng_line = LineString([j0, (878, 474), (742, 481), (700, 474), (690, 468)])
+    d.add("HV-LEIDING", lng_line, style="dashed",
+          dlabel="cryogene losleiding + dampretour ca. " + f"{lng_line.length * s / 1000:.1f}".replace(".", ",") + " km")
     d.add("HV-LEIDING", LineString([(622, 458), (600, 458)]), style="dashed")
     d.add("HV-LEIDING", LineString([(480, 482), (300, 482)]), style="dashed")  # gasnet
     if not so:
@@ -516,6 +518,58 @@ def build_do_render(coast=None, so=False):
     d.center = d.P(700, 335)
     d.scale = 12500
     return d
+
+
+# ======================================================================================
+# Overslagproces en ruimtebeslag (projectaannamen herkenbaar; rekenboek-invoer waar beschikbaar)
+# ======================================================================================
+OVERSLAG_AANNAMEN = dict(
+    # containers
+    teu_2045=4_000_000, teu_per_box=(1.2 + 2) / (1.2 + 1), aandeel_truck=0.70, aandeel_rail=0.30,
+    piekdag=1.3, piekuur_aandeel=0.10, boxen_per_truckbezoek=1.3, gate_cap_per_rijstrook=60.0,
+    buffer_minuten=30.0, m2_per_truck_buffer=100.0, boxen_per_trein=90.0, uren_per_trein=6.0, treinposities=10,
+    sts_netto=30.0,
+    # graan (export: aanvoer per weg en spoor, belading per shiploader)
+    graan_2045=1_500_000, graan_piekmaand=0.15, graan_aandeel_truck=0.5, ton_per_truck=37.0, ton_per_trein=7600.0,
+    graan_buffer_uren=4.0, graan_werkuren=16.0,
+    # RoRo (import auto's)
+    auto_2045=210_000, autos_per_call=6500, losproductie=150.0, rijcyclus_min=8.0, autos_per_transporter=8.0,
+    # LNG
+    lng_parcel=156_600, lng_pomp=10_000.0, lng_overig=8.0, lng_2045=8_000_000,
+)
+
+
+def overslag_calc():
+    a = OVERSLAG_AANNAMEN
+    r = {}
+    boxen = a["teu_2045"] / a["teu_per_box"]
+    r["boxen_per_jaar"] = boxen
+    truck = boxen * a["aandeel_truck"]
+    r["truck_boxen_piekuur"] = truck / 365 * a["piekdag"] * a["piekuur_aandeel"]
+    r["truckbezoeken_piekuur"] = r["truck_boxen_piekuur"] / a["boxen_per_truckbezoek"]
+    r["gate_rijstroken_per_richting"] = math.ceil(r["truckbezoeken_piekuur"] / a["gate_cap_per_rijstrook"])
+    r["buffer_plaatsen"] = math.ceil(r["truckbezoeken_piekuur"] * a["buffer_minuten"] / 60)
+    r["buffer_ha"] = r["buffer_plaatsen"] * a["m2_per_truck_buffer"] / 1e4
+    rail = boxen * a["aandeel_rail"]
+    r["treinen_per_dag"] = rail / a["boxen_per_trein"] / 365 * a["piekdag"]
+    r["treincapaciteit_per_dag"] = a["treinposities"] * 24 / a["uren_per_trein"]
+    r["kade_boxen_per_uur_per_schip"] = 5 * a["sts_netto"]
+    # graan
+    piekdag_t = a["graan_2045"] * a["graan_piekmaand"] / 30
+    r["graan_piekdag_t"] = piekdag_t
+    r["graan_trucks_per_dag"] = piekdag_t * a["graan_aandeel_truck"] / a["ton_per_truck"]
+    r["graan_trucks_per_uur"] = r["graan_trucks_per_dag"] / a["graan_werkuren"]
+    r["graan_wachtplaatsen"] = math.ceil(r["graan_trucks_per_uur"] * a["graan_buffer_uren"])
+    r["graan_treinen_per_week"] = piekdag_t * (1 - a["graan_aandeel_truck"]) * 7 / a["ton_per_trein"]
+    r["graan_trein_lengte_m"] = 80 * 17.5
+    # RoRo
+    r["roro_lostijd_uur"] = a["autos_per_call"] / a["losproductie"]
+    r["roro_chauffeurs"] = math.ceil(a["losproductie"] * a["rijcyclus_min"] / 60)
+    r["roro_transporters_per_dag"] = a["auto_2045"] / 365 * 1.3 / a["autos_per_transporter"]
+    # LNG
+    r["lng_lostijd_uur"] = a["lng_parcel"] / a["lng_pomp"] + a["lng_overig"]
+    r["lng_sendout_m3_per_uur"] = a["lng_2045"] / 8760
+    return r
 
 
 # ======================================================================================
@@ -594,19 +648,26 @@ def add_terminal_details(d, f6, roro, j0, j1, b0, b1, jt):
         det["teu_grondslots_per_fase"][ph] = zph.area * s * s / 28.0
 
     # railterminal, wisselstrook vrachtauto's, randweg
-    for bb in (808, 816, 824, 832):
-        d.add("HV-SPOOR", LineString([Fs(150, bb), Fs(1450, bb)]), dlabel="railterminal 4 sporen x 1.300 m" if bb == 808 else None)
-    d.add("HV-D-KRAAN", poly([(150, 800), (1450, 800), (1450, 840), (150, 840)]), style="dashed", dlabel="RMG-kraanbaan")
-    d.add("HV-SPOOR", LineString([Fs(1450, 820), Fs(1560, 845), (650.0, 448.0)]))
-    d.add("HV-D-VERKEER", poly([(150, 845), (1440, 845), (1440, 870), (150, 870)]), dlabel="overslag vrachtauto's")
+    for bb in (806, 814, 822, 830, 838):
+        d.add("HV-SPOOR", LineString([Fs(150, bb), Fs(1450, bb)]), dlabel="railterminal 5 sporen x 1.300 m" if bb == 806 else None)
+    d.add("HV-D-KRAAN", poly([(150, 800), (1450, 800), (1450, 845), (150, 845)]), style="dashed", dlabel="RMG-kraanbaan")
+    d.add("HV-SPOOR", LineString([Fs(1450, 822), Fs(1560, 850), (650.0, 448.0)]))
+    d.add("HV-D-VERKEER", poly([(150, 850), (1440, 850), (1440, 872), (150, 872)]), dlabel="overslag vrachtauto's")
     d.add("HV-WEG", LineString([Fs(0, 885), Fs(QL, 885)]), style="dashed")
     # gebouwen en gate
     d.add("HV-D-GEBOUW", poly([(10, 805), (60, 805), (60, 845), (10, 845)]), dlabel="kantoor terminal")
     d.add("HV-D-GEBOUW", poly([(70, 805), (140, 805), (140, 885), (70, 885)]), dlabel="werkplaats")
-    d.add("HV-D-GEBOUW", poly([(1500, 820), (1560, 820), (1560, 880), (1500, 880)]), dlabel="gate (12 rijstroken)")
-    d.add("HV-D-GEBOUW", poly([(1565, 830), (1590, 830), (1590, 870), (1565, 870)]), dlabel="douane/scan")
-    d.add("HV-D-PARKEER", poly([(1460, 800), (1495, 800), (1495, 890), (1460, 890)]), dlabel="truckparking")
+    ov = overslag_calc()
+    det["overslag"] = ov
+    d.add("HV-D-GEBOUW", poly([(1490, 825), (1580, 825), (1580, 885), (1490, 885)]),
+          dlabel=f"gate {ov['gate_rijstroken_per_richting'] + 1} in + {ov['gate_rijstroken_per_richting'] + 1} uit")
+    d.add("HV-D-GEBOUW", poly([(1490, 805), (1580, 805), (1580, 820), (1490, 820)]), dlabel="douane/scan")
+    d.add("HV-D-PARKEER", poly([(1460, 800), (1485, 800), (1485, 890), (1460, 890)]), dlabel="truckparking intern")
+    pre = box(440, 452, 475, 461)
+    d.add("HV-D-PARKEER", pre, dlabel=f"pre-gate truckbuffer (ca. {ov['buffer_plaatsen']} plaatsen)")
+    det["pregate_ha"] = pre.area * s * s / 1e4
     det["railterminal_m"] = 1300.0
+    det["railsporen"] = 5
 
     # ---------------- graanterminal (droge bulk) ----------------
     sil = []
@@ -625,6 +686,10 @@ def add_terminal_details(d, f6, roro, j0, j1, b0, b1, jt):
     d.add("HV-D-GEBOUW", box(724, 201.5, 733, 206.5), dlabel="ontvangst spoor")
     d.add("HV-SPOOR", LineString([(722, 196), (724, 201.5), (733, 201.5), (735, 196)]))
     d.add("HV-D-GEBOUW", box(748, 201.5, 756, 206.5), dlabel="kantoor/weegbrug")
+    d.add("HV-D-PARKEER", box(705.5, 236, 716, 249), dlabel=f"wachtplaats vrachtauto's ({ov['graan_wachtplaatsen'] + 4})")
+    for yy in (201.0, 203.0):
+        d.add("HV-SPOOR", LineString([(565, yy), (705, yy)]), dlabel="opstelsporen graantreinen 2 x 1.400 m" if yy == 201 else None)
+    d.add("HV-SPOOR", LineString([(705, 201), (724, 203)]))
     vol = 8 * math.pi * 15 ** 2 * 40
     det["graan_silo_m3"] = vol
     det["graan_silo_ton"] = vol * 0.75
@@ -644,6 +709,9 @@ def add_terminal_details(d, f6, roro, j0, j1, b0, b1, jt):
     det["roro_parkeer_m2"] = park
     det["roro_auto_capaciteit"] = park / 12.5   # 2,5 x 5,0 m per auto in de parkeerstroken
     d.add("HV-D-GEBOUW", box(_slant(580, 293, 300) + 3, 296, _slant(580, 293, 300) + 11, 302), dlabel="kantoor RoRo")
+    d.add("HV-D-VERKEER", _para(624, 630, 293, 353), dlabel="aanlandings- en opstelzone 60 m")
+    d.add("HV-D-GEBOUW", _para(580, 586, 318, 334), dlabel="PDI-hal")
+    d.add("HV-D-VERKEER", _para(580, 586, 336, 352), dlabel="laadstraat autotransporters")
 
     # ---------------- havendienst ----------------
     d.add("HV-D-GEBOUW", box(762, 203, 778, 212), dlabel="havenkantoor / VTS")

@@ -454,6 +454,34 @@ def write_docx(path, figs):
         if key in figs:
             doc.add_picture(figs[key], width=Cm(16.5))
             doc.add_paragraph(cap).alignment = WD_ALIGN_PARAGRAPH.CENTER
+    h("6.5 Overslagproces en ruimtebeslag", 2)
+    o = DT["overslag"]
+    p("Per terminal is de overslagketen uitgewerkt en is gecontroleerd of de ruimte voor iedere stap in de tekening zit. "
+      "Aannamen zonder bron zijn projectaannamen en staan onder de tabel.")
+    table(["Terminal", "Overslagketen", "Maatgevende berekening (2045)", "Ruimte in de tekening"], [
+        ("Containers", "schip - STS-kraan - terminaltrekker - RTG-stack - vrachtauto (gate) of trein (RMG)",
+         f"Kade 5 x 30 = {nl(o['kade_boxen_per_uur_per_schip'])} box/u per schip. Landzijde: {nl(o['truckbezoeken_piekuur'])} truckbezoeken in het piekuur "
+         f"-> {o['gate_rijstroken_per_richting']} rijstroken per richting; buffer 30 min = {o['buffer_plaatsen']} trucks ({nl(o['buffer_ha'], 1)} ha); "
+         f"{nl(o['treinen_per_dag'], 1)} treinen per piekdag",
+         f"Apron 60 m, rijstrook 30 m, stack {nl(DT['stack_bruto_m2'] / 1e4, 1)} ha; gate {o['gate_rijstroken_per_richting'] + 1} in + "
+         f"{o['gate_rijstroken_per_richting'] + 1} uit; pre-gate {nl(DT['pregate_ha'], 1)} ha; railterminal 5 sporen x 1.300 m "
+         f"({nl(o['treincapaciteit_per_dag'])} treinen/dag)"),
+        ("Graan (export)", "vrachtauto/trein - stortput - silo - transportband - shiploader - schip",
+         f"Piekdag {nl(o['graan_piekdag_t'])} t: {nl(o['graan_trucks_per_dag'])} trucks/dag, {nl(o['graan_treinen_per_week'], 1)} treinen/week "
+         f"van {nl(o['graan_trein_lengte_m'])} m",
+         f"Wachtplaats {o['graan_wachtplaatsen'] + 4} trucks, 2 opstelsporen x 1.400 m, silo's {nl(DT['graan_silo_ton'])} t, 2 shiploaders"),
+        ("RoRo (import)", "schip - ramp - opstelzone - PDI - parkeervak - laadstraat autotransporters",
+         f"Lossen {nl(o['roro_lostijd_uur'], 1)} u per call met ca. {o['roro_chauffeurs']} chauffeurs; {nl(o['roro_transporters_per_dag'])} "
+         "autotransporters per piekdag",
+         f"Opstelzone 60 m langs de kade, PDI-hal, parkeervakken ca. {nl(DT['roro_auto_capaciteit'])} auto's, laadstraat"),
+        ("LNG", "schip - laadarmen - cryogene leiding - tanks - hervergassing - centrale / gasnet",
+         f"Lossen {nl(o['lng_lostijd_uur'], 1)} u per call; send-out gemiddeld {nl(o['lng_sendout_m3_per_uur'])} m3 LNG/u",
+         "3 laadarmen, losleiding + dampretour ca. 2 km langs de dam, 3 tanks + plaats 4e, hervergassing 4 x 33%"),
+    ], [2.4, 4.2, 5.4, 5.0])
+    p("Projectaannamen: modal split containers 70% weg / 30% spoor; piekdag 1,3 x gemiddeld; piekuur 10% van de piekdag; "
+      "1,3 box per truckbezoek; 60 trucks per uur per gate-rijstrook; 90 boxen per trein en 6 uur per trein; graan in de oogstmaand "
+      "15% van de jaarhoeveelheid, 50% per weg (37 t per truck) en 50% per spoor (7.600 t per trein, 80 wagens); RoRo-rijcyclus 8 "
+      "minuten, 8 auto's per autotransporter. Toetsen met de terminaloperator en het achterlandvervoer.")
     h("6.1 Maatstaat en aansluiting op het rekenboek", 2)
     table(["Onderdeel", "Eenheid", "Gemeten DO", "Rekenboek/eis", "Cel / bron", "Status"], MAATSTAAT, [5, 1.3, 2.2, 2.2, 3.5, 2.6])
     h("6.2 Ontwerpankerpunten", 2)
