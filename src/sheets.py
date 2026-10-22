@@ -327,6 +327,7 @@ def sheet_overview(pdf, d, coast, geo):
         f"Noordrichting: convergentie {ga['meridiaanconvergentie_graden']:.2f} gr",
     ]
     text_block(bg, legend_y - 3, lines, fs=6.6, lh=3.9)
+    masterplan_inset(bg, 92)
     title_block(bg, d, f"{d.code}-01", "Overzicht zoekgebied en havenligging", "1:40.000")
     pdf.savefig(f)
     plt.close(f)
@@ -334,7 +335,7 @@ def sheet_overview(pdf, d, coast, geo):
 
 def sheet_layout(pdf, d, phase_note=None, markup=None, blad="02", naam="Havenindeling"):
     f, bg = fig_new()
-    center = H.P(-350, -150)
+    center = H.P(-400, 50)
     ax = map_axes(f, MAP, center, 10000)
     grid(ax, 1000)
     draw_design(ax, d, fs=6.2)
@@ -367,6 +368,7 @@ def sheet_layout(pdf, d, phase_note=None, markup=None, blad="02", naam="Havenind
         if phase_note:
             lines += phase_note
         y = text_block(bg, y - 3, lines, fs=6.3, lh=3.8)
+    masterplan_inset(bg, 92)
     title_block(bg, d, f"{d.code}-{blad}", naam, "1:10.000")
     pdf.savefig(f)
     plt.close(f)
@@ -374,7 +376,7 @@ def sheet_layout(pdf, d, phase_note=None, markup=None, blad="02", naam="Havenind
 
 def sheet_phases(pdf, d):
     f, bg = fig_new()
-    center = H.P(-450, -150)
+    center = H.P(-400, 50)
     panels = [(15, 302, 305, 277), (325, 302, 305, 277), (15, 15, 305, 277)]
     for (x, y, w, h), ph, jr in zip(panels, (1, 2, 3), (2025, 2035, 2045)):
         ax = map_axes(f, (x, y, w, h), center, 20000)
@@ -392,7 +394,7 @@ def sheet_phases(pdf, d):
             ("Rekenvraag terrein", "40,8 ha", "67,9 ha", "135,9 ha"),
             ("Kranen per schip / totaal", "3 / 6", "4 / 12", "5 / 20"),
             ("Kadebezetting", "60,0%", "51,3%", "63,1%"),
-            ("Binnenbekken gebaggerd", "tot u = -1.600", "tot u = -1.800", "tot u = -2.350"),
+            ("Bekkens gebaggerd", "hoofd-, insteek-, containerb. N", "+ containerbekken midden", "+ containerbekken zuid"),
             ("Graan / RoRo", "1 lp, 30 ha elk", "equipment +", "pieken toetsen"),
             ("LNG", "steiger + 3 tanks", "doorzet 6 mln m3", "8 mln m3; N-1 besluit"),
             ("Centrale", "eindcapaciteit", "-", "-"),
@@ -407,9 +409,10 @@ def sheet_phases(pdf, d):
             bg.text(xx + 1.5, y0 - 9 * (r + 1) + 4.5, txt, fontsize=7, va="center", weight="bold" if r == 0 else None)
             xx += cw[c]
     text_block(bg, y0 - 9 * len(rows) - 8, [
-        "Uitbreiding gebeurt landinwaarts aan het doodlopende eind van het binnenbekken:",
-        "baggeren en kadebouw voor F2/F3 liggen buiten de vaarroute naar de bestaande",
-        "ligplaatsen. Toekomstige onderdelen zijn gestippeld weergegeven.",
+        "De containerkade groeit zuidwaarts langs de voorhaven (zoals vinger 6 in het",
+        "masterplan); baggeren en kadebouw voor F2/F3 gebeuren aan het zuideinde, buiten de",
+        "vaarroute naar C1/C2. Toekomstige onderdelen zijn gestippeld weergegeven; fase 4",
+        "(reserve) volgt het masterplan: insteek- en hoofdbekken west, westkade vinger 6.",
         "Golfbrekers, geul, draaikom, LNG-steiger en leidingcorridors worden in F1 op",
         "eindmaat aangelegd (latere uitbreiding is onevenredig duur, rapport par. 10).",
     ], fs=7.2, lh=4.4, x=x0)
@@ -494,14 +497,34 @@ def sheet_tables(pdf, d, geo):
 
 def so_markup(d):
     m = d.m
+    n = d.notes
+    M, T = n["M"], n["T"]
     return [
-        (1800, 0, 300, f"Havenmond {nl(m['havenmond_vrij_m'])} m vrij tussen dammen (350 m hart-hart gemeten)"),
-        (150, 0, 480, f"Draaikom raakt landhoeken ({nl(m['draaikom_overlap_land_m2'] / 1e4, 1)} ha); stopweg {nl(m['stopweg_mond_draaikom_m'])} m < 5 LOA"),
-        (2250, -650, 300, "Geen sleepbootkoppelpunt buiten de dammen; geulknik buiten blad"),
-        (-300, 1500, 600, "LNG noordzijde: tanks tegen containeruitbreiding en hoofdcorridor"),
-        (-1100, -525, 420, "Graan + RoRo op één perceel; weg kruist het terrein"),
-        (-1700, 675, 650, "Containers F1 aan landeinde: heel bekken in F1 baggeren"),
+        (M[0], M[1], 300, f"Havenmond {nl(m['havenmond_vrij_m'])} m vrij tussen dammen (350 m hart-hart gemeten)"),
+        (T[0], T[1], 470, f"Draaikom overlapt ligplaats C1 en containerkade ({nl(m['draaikom_overlap_schepen_m2'] / 1e4, 1)} ha); "
+                          f"stopweg {nl(m['stopweg_mond_draaikom_m'])} m < 5 LOA"),
+        (2350, -450, 280, "Geen sleepbootkoppelpunt; geul knikt 15 gr op 2,2 km buiten de mond"),
+        (-500, -1200, 380, f"LNG-tanks op {nl(m['lng_tank_tot_containerterrein_m'])} m van het containerterrein"),
+        (-1150, 1450, 480, "Graan + RoRo op één perceel; weg kruist het terrein"),
+        (-650, -650, 430, "Containers F1 aan het zuideinde: lange vaarweg langs lege kade; alle bekkens in F1"),
     ]
+
+
+def masterplan_inset(bg, y_bottom, width=None):
+    """Vormreferentie: uitsnede Porto Central-masterplan 2016 p. 9 in het rechterpaneel."""
+    path = os.path.join(H.ROOT, "Referentie", "Porto_Central_masterplan_2016_p9_uitsnede.png")
+    if not os.path.exists(path):
+        return y_bottom
+    im = np.asarray(Image.open(path).convert("RGB"))
+    w = width or (PW - PANEL_X - 8)
+    h = w * im.shape[0] / im.shape[1]
+    bg.imshow(im, extent=(PANEL_X + 1, PANEL_X + 1 + w, y_bottom, y_bottom + h), zorder=5)
+    bg.set_xlim(0, PW)
+    bg.set_ylim(0, PH)
+    bg.text(PANEL_X + 1, y_bottom + h + 2, "Vormreferentie: Porto Central masterplan 2016, p. 9 (ANTT)", fontsize=7, weight="bold")
+    bg.text(PANEL_X + 1, y_bottom - 2, "6 containers -> containervinger | 10 graan -> noordkade | 7/8 -> RoRo + reserve\n"
+            "9 tankpark -> LNG + centrale | 18 LNG -> LNG-steiger | 11/14 dammen en ingang", fontsize=5.8, va="top")
+    return y_bottom + h
 
 
 def make_pdf(d, path, coast, geo):
@@ -509,7 +532,7 @@ def make_pdf(d, path, coast, geo):
     with PdfPages(path) as pdf:
         sheet_overview(pdf, d, coast, geo)
         if d.code == "SO":
-            sheet_layout(pdf, d, phase_note=["**Fasen (globaal)", "F1 = landzijde, F2/F3 richting ingang (zie DO voor herziening)"])
+            sheet_layout(pdf, d, phase_note=["**Fasen (globaal)", "F1 = zuideinde containervinger, F2/F3 richting hoofdbekken (zie DO)"])
             sheet_layout(pdf, d, markup=so_markup(d), blad="03", naam="Bespreking SO - bespreekpunten")
         else:
             sheet_layout(pdf, d)

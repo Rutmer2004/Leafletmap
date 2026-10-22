@@ -1,104 +1,21 @@
 {
  "SO": {
   "m": {
-   "havenmond_vrij_m": 260.0070422396588,
+   "havenmond_vrij_m": 260.0537310264914,
    "draaikom_diameter_m": 720.0,
-   "draaikom_vrij_van_schepen_m": 344.2760441792849,
-   "draaikom_vrij_van_kades_dammen_m": 327.84219434299393,
-   "draaikom_overlap_land_m2": 15557.935292453436,
+   "draaikom_vrij_van_schepen_m": 0.0,
+   "draaikom_overlap_schepen_m2": 19582.09289559357,
+   "draaikom_vrij_van_kades_dammen_m": 0.0,
+   "draaikom_overlap_land_m2": 16203.691486152598,
    "stopweg_mond_draaikom_m": 1650.0,
    "stopweg_in_LOA": 4.940119760479042,
-   "geullengte_buiten_mond_m": 10200.000000000002,
-   "containerkade_m": {
-    "1": 800.0,
-    "2": 1200.0,
-    "3": 1600.0
-   },
-   "container_ha": {
-    "1": 72.0,
-    "2": 108.0,
-    "3": 144.0
-   },
-   "graan_ha": 36.0,
-   "roro_ha": 36.0,
-   "lng_zone_ha": 25.0,
-   "centrale_ha": 45.0,
-   "havendienst_ha": 0.0,
-   "reserve_ha": 60.0,
-   "binnenbekken_m2": {
-    "1": 1643966.0095152305,
-    "2": 1643966.0095152305,
-    "3": 1643966.0095152305
-   },
-   "voorhaven_bagger_m2": 0.0,
-   "havenbekken_totaal_m2": 1643966.0095152305,
-   "vrije_breedte_binnenbekken_m": 354.1,
-   "terreinophoging_m2": 2860000.0
-  },
-  "anker": {
-   "A1": {
-    "naam": "Kustpunt havenas",
-    "u": 0,
-    "v": 0,
-    "E": 297135.0,
-    "N": 7650000.0,
-    "lat": -21.240329341820576,
-    "lon": -40.95482616266478
-   },
-   "A2": {
-    "naam": "Middelpunt draaikom",
-    "u": 150.0,
-    "v": 0.0,
-    "E": 297275.9538931179,
-    "N": 7649948.696978501,
-    "lat": -21.240808347335584,
-    "lon": -40.95347462202224
-   },
-   "A3": {
-    "naam": "Midden havenmond",
-    "u": 1800.0,
-    "v": 0,
-    "E": 298826.44671741466,
-    "N": 7649384.363742013,
-    "lat": -21.24607673515095,
-    "lon": -40.93860704436593
-   },
-   "A4": {
-    "naam": "Geulknik",
-    "u": 4000.0,
-    "v": 0.0,
-    "E": 300893.7704831436,
-    "N": 7648631.919426697,
-    "lat": -21.253099332003483,
-    "lon": -40.91878180993418
-   },
-   "A5": {
-    "naam": "Eindpunt geul (voorlopig)",
-    "u": 11727.406610312548,
-    "v": 2070.552360820166,
-    "E": 308863.3280678776,
-    "N": 7647934.673484716,
-    "lat": -21.26025244939259,
-    "lon": -40.84208839999159
-   }
-  }
- },
- "DO": {
-  "m": {
-   "havenmond_vrij_m": 350.01707561627364,
-   "draaikom_diameter_m": 720.0,
-   "draaikom_vrij_van_schepen_m": 687.1951154521107,
-   "draaikom_vrij_van_kades_dammen_m": 280.8036760812425,
-   "draaikom_overlap_land_m2": 0.0,
-   "stopweg_mond_draaikom_m": 1700.0,
-   "stopweg_in_LOA": 5.089820359281437,
-   "geullengte_buiten_mond_m": 10000.0,
-   "geullengte_totaal_vanaf_draaikom_m": 11700.0,
-   "lng_ligplaats_tot_draaikom_m": 761.7845830110286,
-   "lng_tank_tot_roro_m": 290.599761673517,
+   "geullengte_buiten_mond_m": 10200.0,
+   "geullengte_totaal_vanaf_draaikom_m": 11850.0,
+   "geul_buiten_m2": 2244000.0,
    "sleepboot_buiten_mond_m": 1500.0,
-   "lng_tank_tot_kustbebouwing_zuid_m": 2647.87123076804,
-   "geul_buiten_m2": 2200000.0,
+   "lng_ligplaats_tot_draaikom_m": 987.1461241725223,
+   "lng_tank_tot_containerterrein_m": 105.0,
+   "lng_tank_tot_kustbebouwing_zuid_m": 2664.177581710741,
    "containerkade_m": {
     "1": 800.0,
     "2": 1200.0,
@@ -109,21 +26,22 @@
     "2": 108.0,
     "3": 144.0
    },
-   "graan_ha": 30.0,
-   "roro_ha": 30.0,
-   "lng_zone_ha": 25.0,
-   "centrale_ha": 49.5,
-   "havendienst_ha": 29.4,
-   "reserve_ha": 161.1,
+   "graan_ha": 66.0,
+   "roro_ha": 66.0,
+   "lng_zone_ha": 24.0,
+   "centrale_ha": 42.0,
+   "havendienst_ha": 0.0,
+   "reserve_ha": 237.75,
    "binnenbekken_m2": {
-    "1": 720000.0,
-    "2": 810000.0,
-    "3": 1057500.0
+    "1": 3330000.0,
+    "2": 3330000.0,
+    "3": 3330000.0
    },
-   "voorhaven_bagger_m2": 1134585.4505715105,
-   "havenbekken_totaal_m2": 2192085.4505715137,
-   "vrije_breedte_binnenbekken_m": 354.1,
-   "terreinophoging_m2": 3079000.0
+   "voorhaven_bagger_m2": 610890.5620101969,
+   "havenbekken_totaal_m2": 3940890.5620101965,
+   "reserve_water_m2": 0.0,
+   "vrije_breedte_binnenbekken_m": 407.3,
+   "terreinophoging_m2": 2760000.0
   },
   "anker": {
    "A1": {
@@ -137,93 +55,194 @@
    },
    "A2": {
     "naam": "Middelpunt vrije draaikom",
-    "u": 450.0,
-    "v": 0.0,
-    "E": 297557.86167935363,
-    "N": 7649846.090935503,
-    "lat": -21.24176632778889,
-    "lon": -40.95077151206982
+    "u": 100.0,
+    "v": 100.0,
+    "E": 297263.17127641116,
+    "N": 7650059.767247746,
+    "lat": -21.239803943728795,
+    "lon": -40.95358452261081
    },
    "A3": {
     "naam": "Midden havenmond",
-    "u": 2150.0,
-    "v": 0,
-    "E": 299155.3391346897,
-    "N": 7649264.65669185,
-    "lat": -21.247194113315427,
-    "lon": -40.93545316718363
+    "u": 1707.7106068956382,
+    "v": -271.16923966737727,
+    "E": 298646.9777135211,
+    "N": 7649161.112839971,
+    "lat": -21.248072843465494,
+    "lon": -40.94036214622068
    },
    "A4": {
-    "naam": "Sleepbootkoppelpunt",
-    "u": 3650.0,
-    "v": 0,
-    "E": 300564.8780658686,
-    "N": 7648751.626476862,
-    "lat": -21.251982247572236,
-    "lon": -40.92193596186665
+    "naam": "Geulknik",
+    "u": 3851.324749423156,
+    "v": -766.0615592238803,
+    "E": 300492.052963001,
+    "N": 7647962.906962938,
+    "lat": -21.259096592252728,
+    "lon": -40.922729935641534
    },
    "A5": {
     "naam": "Eindpunt geul (voorlopig)",
-    "u": 12150.0,
+    "u": 11846.451365575922,
+    "v": -486.86558560387283,
+    "E": 308100.50509336224,
+    "N": 7645490.771007939,
+    "lat": -21.282241926743417,
+    "lon": -40.84971308667344
+   }
+  }
+ },
+ "DO": {
+  "m": {
+   "havenmond_vrij_m": 350.02347920432055,
+   "draaikom_diameter_m": 720.0,
+   "draaikom_vrij_van_schepen_m": 86.80000000000001,
+   "draaikom_overlap_schepen_m2": 0.0,
+   "draaikom_vrij_van_kades_dammen_m": 140.0,
+   "draaikom_overlap_land_m2": 0.0,
+   "stopweg_mond_draaikom_m": 1700.0,
+   "stopweg_in_LOA": 5.089820359281437,
+   "geullengte_buiten_mond_m": 10000.0,
+   "geullengte_totaal_vanaf_draaikom_m": 11700.0,
+   "geul_buiten_m2": 2200000.0,
+   "sleepboot_buiten_mond_m": 1500.0,
+   "lng_ligplaats_tot_draaikom_m": 938.769280278557,
+   "lng_tank_tot_containerterrein_m": 465.00000000000006,
+   "lng_tank_tot_kustbebouwing_zuid_m": 2325.888238227926,
+   "containerkade_m": {
+    "1": 800.0,
+    "2": 1200.0,
+    "3": 1600.0
+   },
+   "container_ha": {
+    "1": 72.0,
+    "2": 108.0,
+    "3": 144.0
+   },
+   "graan_ha": 30.0,
+   "roro_ha": 30.0,
+   "lng_zone_ha": 30.0,
+   "centrale_ha": 52.5,
+   "havendienst_ha": 15.4,
+   "reserve_ha": 237.75,
+   "binnenbekken_m2": {
+    "1": 1842500.0,
+    "2": 2102500.0,
+    "3": 2362500.0
+   },
+   "voorhaven_bagger_m2": 760464.970798186,
+   "havenbekken_totaal_m2": 3122964.9707981846,
+   "reserve_water_m2": 967500.0,
+   "vrije_breedte_binnenbekken_m": 407.3,
+   "terreinophoging_m2": 3019000.0
+  },
+  "anker": {
+   "A1": {
+    "naam": "Kustpunt havenas (waterlijn)",
+    "u": 0,
     "v": 0,
-    "E": 308552.2653425488,
-    "N": 7645844.455258593,
-    "lat": -21.27909569687124,
-    "lon": -40.845320449603435
+    "E": 297135.0,
+    "N": 7650000.0,
+    "lat": -21.240329341820576,
+    "lon": -40.95482616266478
+   },
+   "A2": {
+    "naam": "Middelpunt vrije draaikom",
+    "u": 300.0,
+    "v": 100.0,
+    "E": 297451.1098005684,
+    "N": 7649991.3632190805,
+    "lat": -21.240442602163863,
+    "lon": -40.95178246597346
+   },
+   "A3": {
+    "naam": "Midden havenmond",
+    "u": 1956.4291101349,
+    "v": -282.4167923845705,
+    "E": 298876.84976607555,
+    "N": 7649065.476859555,
+    "lat": -21.248961926214687,
+    "lon": -40.938159215743106
+   },
+   "A4": {
+    "naam": "Sleepbootkoppelpunt",
+    "u": 3417.984207312753,
+    "v": -619.8433739003681,
+    "E": 300134.8556179937,
+    "N": 7648248.518307032,
+    "lat": -21.25647815464101,
+    "lon": -40.92613735471829
+   },
+   "A5": {
+    "naam": "Eindpunt geul (voorlopig)",
+    "u": 11700.129757987252,
+    "v": -2531.9273358232203,
+    "E": 307263.5554455298,
+    "N": 7643619.086509406,
+    "lat": -21.29905550632167,
+    "lon": -40.85798962731904
    },
    "A6": {
     "naam": "Wortel noordelijke golfbreker",
-    "u": -60,
-    "v": 1350,
-    "E": 297540.34563624253,
-    "N": 7651289.10624666,
-    "lat": -21.228733753572993,
-    "lon": -40.95076875699594
+    "u": -50,
+    "v": 1900,
+    "E": 297737.85364127945,
+    "N": 7651802.51698666,
+    "lat": -21.224119560859172,
+    "lon": -40.948805617264085
    },
    "A7": {
     "naam": "Wortel zuidelijke golfbreker",
-    "u": -60,
-    "v": -1650,
-    "E": 296514.2852062655,
-    "N": 7648470.028384303,
-    "lat": -21.25407567416597,
-    "lon": -40.96098762884576
+    "u": -200,
+    "v": -1850,
+    "E": 296314.32421069033,
+    "N": 7648329.972680211,
+    "lat": -21.255317961315498,
+    "lon": -40.962930554510365
    },
    "A8": {
-    "naam": "Containerkade begin (F1)",
-    "u": -550,
-    "v": 225,
-    "E": 296695.123590816,
-    "N": 7650399.541918506,
-    "lat": -21.236672274216236,
-    "lon": -40.959015294621075
+    "naam": "Containerkade noordeinde (F1)",
+    "u": -200,
+    "v": 550,
+    "E": 297135.17255467194,
+    "N": 7650585.234970097,
+    "lat": -21.23504462460323,
+    "lon": -40.954754810036775
    },
    "A9": {
-    "naam": "Containerkade eind (F3)",
-    "u": -2150,
-    "v": 225,
-    "E": 295191.61539755855,
-    "N": 7650946.774147826,
-    "lat": -21.231561926515205,
-    "lon": -40.973430612621925
+    "naam": "Containerkade zuideinde (F3)",
+    "u": -200,
+    "v": -1050,
+    "E": 296587.9403253509,
+    "N": 7649081.72677684,
+    "lat": -21.248560250801066,
+    "lon": -40.96020503436949
    },
    "A10": {
     "naam": "Midden LNG-ligplaats",
-    "u": 870,
-    "v": -1190,
-    "E": 297545.5286095262,
-    "N": 7648584.208256572,
-    "lat": -21.25315990639688,
-    "lon": -40.95104035235888
+    "u": 720,
+    "v": -1270,
+    "E": 297377.2131049423,
+    "N": 7648560.335868408,
+    "lat": -21.253356700409377,
+    "lon": -40.95266452628184
    },
    "A11": {
-    "naam": "Eind binnenbekken",
-    "u": -2350,
-    "v": 0,
-    "E": 294926.72234115313,
-    "N": 7650803.747336815,
-    "lat": -21.23282359209516,
-    "lon": -40.97599905145535
+    "naam": "Graankade midden",
+    "u": -850,
+    "v": 1150,
+    "E": 296729.5844371565,
+    "N": 7651371.36363573,
+    "lat": -21.227900486387693,
+    "lon": -40.95856746150617
+   },
+   "A12": {
+    "naam": "RoRo-kade midden",
+    "u": -1550,
+    "v": 400,
+    "E": 295815.2844951121,
+    "N": 7650906.0082704695,
+    "lat": -21.23200021090033,
+    "lon": -40.9674288229264
    }
   }
  },
@@ -353,5 +372,11 @@
    7650000.0
   ],
   "azimut_u": 110.0
+ },
+ "landxml": {
+  "route_m": 11699.999999999458,
+  "punten": 43,
+  "driehoeken": 41,
+  "oppervlak_m2": 5322964.970794859
  }
 }

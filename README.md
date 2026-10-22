@@ -10,6 +10,8 @@ Porto Central-masterplan als vormreferentie.
 |---|---|
 | `CAD/Haven_SO.dxf` | Schetsontwerp (SO) in projectcoördinaten, lagen `HV-*`, luchtfoto als gekoppeld beeld, A1-layout 1:10.000 |
 | `CAD/Haven_DO.dxf` | Definitief ontwerp (DO), met maatvoering (DIMENSION), fasegrenzen en ankerpunten |
+| `CAD/Haven_DO_geul_ontwerpbodem.xml` | LandXML voor Civil 3D: geulas (Alignment) en ontwerpbodem −18,20 m MLWS (TIN-oppervlak) |
+| `Referentie/` | Uitsnede Porto Central-masterplan 2016 p. 9 (vormreferentie) |
 | `CAD/Ondergrond/` | Sentinel-2 luchtfoto 03-07-2026 (JPG + `.jgw` + `.prj`), waterlijn en GSHHS-kust (JSON) |
 | `PDF/Haven_SO.pdf` | SO-01 overzicht 1:40.000 · SO-02 havenindeling 1:10.000 · SO-03 bespreekpunten |
 | `PDF/Haven_DO.pdf` | DO-01 overzicht · DO-02 havenplan 1:10.000 · DO-03 fasering 1:20.000 · DO-04 maatstaat en georeferentie |
@@ -24,14 +26,15 @@ Porto Central-masterplan als vormreferentie.
 2. Open `Haven_DO.dxf` en `Haven_SO.dxf` en stel bij *Drawing Settings > Units and Zone* `SIRGAS2000.UTM-24S` en meter in.
    Je hoeft niets te verschuiven: de objecten staan al op projectcoördinaten.
 3. Zet *Map Aerial* aan ter controle en leg het beeld vast met `GEOMAPIMAGE`.
-4. Sla op met `SAVEAS` als `Haven_DO.dwg` en `Haven_SO.dwg`. De layout `DO-02 A1 1-10000` plot je direct naar PDF.
+4. *Insert > Import LandXML*: `Haven_DO_geul_ontwerpbodem.xml` (geulas en ontwerpbodem voor de baggervolumes).
+5. Sla op met `SAVEAS` als `Haven_DO.dwg` en `Haven_SO.dwg`. De layout `DO-02 A1 1-10000` plot je direct naar PDF.
 
 ## Belangrijkste maten (DO)
 
 * Geul 220 m bodembreedte, −18,20 m MLWS. Lengte buiten de mond is voorlopig 10.000 m: het eindpunt moet nog op de −18,2 m-lijn van de bathymetrie komen.
 * Havenmond 350 m vrij tussen de golfbrekerfootprints. Vrije draaikom D 720 m. Stopweg van mond tot draaikom 1.700 m (5,1 LOA). Sleepbootkoppelpunt 1.500 m buiten de mond.
-* Containerkade 800 / 1.200 / 1.600 m en terrein 72 / 108 / 144 ha. Graan en RoRo hebben elk 300 m kade en 30 ha.
-* LNG-steiger met een ligplaatsenvelop van 400 m achter de zuidelijke dam. Tankzone van 25 ha met 3 × 180.000 m³ en ruimte voor een 4e tank. De centrale heeft een reservering van 49,5 ha.
+* Vorm naar het Porto Central-masterplan: containervinger (6) met 1.600 m kade aan de voorhaven en 72 / 108 / 144 ha terrein, graan (10) aan de noordkade van het hoofdbekken, RoRo op de tweede vinger aan het insteekbekken (7/8), elk 300 m kade en 30 ha.
+* Tank- en energiezone langs de zuidrand (9): LNG 30 ha met 3 × 180.000 m³ en ruimte voor een 4e tank, centrale 52,5 ha. LNG-steiger (18) achter de zuidelijke dam.
 
 ## Reproduceren
 
