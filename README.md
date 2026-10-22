@@ -36,7 +36,7 @@ Porto Central-masterplan als vormreferentie.
 * Het DO is de Porto Central-render, overgetrokken op 10,035 m per pixel en 10° gedraaid op de kust (kustfit gemiddeld 31 m). Blad DO-05 toont de render op de luchtfoto met het DO erop.
 * Containervinger (6) 144 ha met 1.600 m kraankade aan het insteekbekken (fasen 72 / 108 / 144 ha), graan 30 ha aan de noordkade (10), RoRo 30 ha op vinger 7/8, havendiensten op de noordoosthoek.
 * Tankpark langs de zuidrand (9): LNG-zone met 3 × 180.000 m³ en ruimte voor een 4e tank, centrale ernaast. LNG-steiger (18) achter de zuidelijke dam.
-* Olie- en droge-bulksteigers (4, 5) vallen buiten het programma en zijn weggelaten; erts, werf en industrie zijn reserveterrein.
+* Alleen functies uit de opdracht: erts, werf, industrie, supply base, olie en het tweede insteekbekken zijn weggelaten. De containerkade ligt aan de voorhavenzijde, zodat schepen na het zwaaien in de draaikom zonder scherpe bocht afmeren.
 
 ## Reproduceren
 

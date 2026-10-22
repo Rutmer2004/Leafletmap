@@ -213,8 +213,9 @@ def legend(bg, y_top, d, fs=7.2):
         skip |= {"HV-SLEEPBOOT", "HV-CONFLICT"}
     else:
         skip |= {"HV-CONFLICT"}
+    used = {i["layer"] for i in d.items} | {"HV-KUSTLIJN", "HV-HAVENMOND", "HV-ZOEKGEBIED"}
     for name, (aci, col, fill, desc) in H.LAYERS.items():
-        if name in skip:
+        if name in skip or name not in used:
             continue
         x = PANEL_X + 3
         if name in ("HV-KADE", "HV-WEG", "HV-LEIDING", "HV-FASEGRENS", "HV-KUSTLIJN", "HV-ZOEKGEBIED"):
@@ -283,8 +284,8 @@ def text_block(bg, y, lines, fs=6.8, lh=4.2, title=None, x=None):
 # --------------------------------------------------------------------------------------
 def sheet_overview(pdf, d, coast, geo):
     f, bg = fig_new()
-    center = (301500.0, 7649400.0)
-    ax = map_axes(f, MAP, center, 40000)
+    center = (302800.0, 7648200.0)
+    ax = map_axes(f, MAP, center, 50000)
     grid(ax, 2000)
     # zoekgebied: kuststrook tussen de twee bronpunten
     pts = list(geo.values())[:2]
@@ -310,7 +311,7 @@ def sheet_overview(pdf, d, coast, geo):
     for (x, y, t) in [(296000, 7645900, "kustbebouwing\nN ≈ 7.646.300"), (295800, 7652600, "Porto Central-terrein\nPresidente Kennedy (ES)"),
                       (293800, 7645000, "rivier + mangrove/wetland\n(vermijden)")]:
         ax.text(x, y, t, fontsize=7, color="#ffd60a", ha="right", path_effects=HALO, zorder=50)
-    north_scale(ax, 40000, 4000)
+    north_scale(ax, 50000, 5000)
     legend_y = legend(bg, PH - 14, d, fs=6.6)
     a1 = d.anchor["A1"]
     gs = geo["_gshhs"]
@@ -333,7 +334,7 @@ def sheet_overview(pdf, d, coast, geo):
     ]
     text_block(bg, legend_y - 3, lines, fs=6.6, lh=3.9)
     masterplan_inset(bg, 92, render=d.code == "DO")
-    title_block(bg, d, f"{d.code}-01", "Overzicht zoekgebied en havenligging", "1:40.000")
+    title_block(bg, d, f"{d.code}-01", "Overzicht zoekgebied en havenligging", "1:50.000")
     pdf.savefig(f)
     plt.close(f)
 
@@ -414,10 +415,9 @@ def sheet_phases(pdf, d):
             bg.text(xx + 1.5, y0 - 9 * (r + 1) + 4.5, txt, fontsize=7, va="center", weight="bold" if r == 0 else None)
             xx += cw[c]
     text_block(bg, y0 - 9 * len(rows) - 8, [
-        "De containerkade groeit zuidwaarts het insteekbekken in (vinger 6 uit de render);",
-        "baggeren en kadebouw voor F2/F3 gebeuren aan het doodlopende zuideinde, buiten de",
-        "vaarroute naar C1/C2. Toekomstige onderdelen zijn gestippeld weergegeven; fase 4",
-        "(reserve) volgt het masterplan: insteek- en hoofdbekken west, westkade vinger 6.",
+        "De containerkade aan de voorhaven groeit zuidwaarts; baggeren en kadebouw voor",
+        "F2/F3 gebeuren aan het zuideinde, buiten de vaarroute naar C1/C2 en de draaikom.",
+        "Toekomstige onderdelen zijn gestippeld; alleen functies uit de opdracht zijn getekend.",
         "Golfbrekers, geul, draaikom, LNG-steiger en leidingcorridors worden in F1 op",
         "eindmaat aangelegd (latere uitbreiding is onevenredig duur, rapport par. 10).",
     ], fs=7.2, lh=4.4, x=x0)
@@ -511,7 +511,8 @@ def so_markup(d):
         "Geen sleepbootkoppelpunt; geul knikt 15 gr op 2,2 km buiten de mond",
         f"LNG-tanks op {nl(m['lng_tank_tot_containerterrein_m'])} m van het containerterrein",
         "Graan + RoRo op één perceel aan de noordkade; weg kruist het terrein",
-        "Containers F1 aan het zuideinde; alle bekkens in F1 baggeren",
+        f"Containerschip 334 m moet {nl(m['bocht_hoofdbekken_insteek_graden'])} gr draaien van hoofdbekken (370 m) naar insteek: niet haalbaar",
+        "Containers F1 aan het zuideinde van de insteek; alles in F1 baggeren",
     ]
     return [(x, y, r, t) for (x, y, r), t in zip(pos, texts)]
 
@@ -529,8 +530,8 @@ def masterplan_inset(bg, y_bottom, width=None, render=False):
     bg.set_ylim(0, PH)
     bg.text(PANEL_X + 1, y_bottom + h + 2, "Referentie: Porto Central render (overgetrokken voor het DO)" if render
             else "Vormreferentie: Porto Central masterplan 2016, p. 9 (ANTT)", fontsize=7, weight="bold")
-    bg.text(PANEL_X + 1, y_bottom - 2, "6 containers -> containervinger | 10 graan -> noordkade | 7/8 -> RoRo + reserve\n"
-            "9 tankpark -> LNG + centrale | 18 LNG -> LNG-steiger | 11/14 dammen en ingang", fontsize=5.8, va="top")
+    bg.text(PANEL_X + 1, y_bottom - 2, "Overgenomen: 11/14 dammen en ingang | 6 containervinger | 10 graan (+ RoRo) | 9 tankpark\n"
+            "(LNG + centrale) | 18 LNG-steiger.  Weggelaten (niet in opdracht): 2, 3, 5, 7/8, 12, 1", fontsize=5.8, va="top")
     return y_bottom + h
 
 
@@ -606,8 +607,10 @@ def sheet_overlay(pdf, d):
         "Gekleurde lijnen = definitief ontwerp (DO).",
         "Afwijkingen van de render zijn bewust:",
         "- havenmond 350 m vrij (render ca. 640 m);",
-        "- olie- en droge-bulksteigers (4, 5) vallen",
-        "  buiten het programma en zijn weggelaten;",
+        "- alleen functies uit de opdracht: erts, werf,",
+        "  industrie, supply base en olie weggelaten;",
+        "- containerkade aan de oostzijde van vinger 6:",
+        "  bereikbaar vanuit de draaikom zonder bocht;",
         "- maten volgen het rekenboek.",
         "In de DXF staat de render op laag HV-REFERENTIE",
         "(uit); aanzetten om zelf verder over te trekken.",
