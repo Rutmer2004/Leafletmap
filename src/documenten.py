@@ -21,6 +21,9 @@ ANK = D["DO"]["anker"]
 DT = D["DO"].get("info", {}).get("detail", {})
 GT = D["DO"].get("info", {}).get("golftoets", {})
 GW = D["DO"].get("info", {}).get("grondwerk", {})
+INFO = D["DO"].get("info", {})
+VR = INFO.get("geul_variant_recht", {})
+VZ = INFO.get("verder_in_zee", {})
 
 
 def _gt(prefix):
@@ -55,27 +58,34 @@ BESLUITEN = [
      "binnen geen draairuimte voor graan- en RoRo-schepen.",
      f"DO: containerkade aan de westzijde van vinger 6, in het insteekbekken. Golftoets (DO-09): aan de oostzijde (voorhaven) wordt Hs "
      f"{nl(_gt('Variant: container')['hs'], 2)} m (grens 0,5 m), in de insteek {nl(_gt('Containers')['hs'], 2)} m. Containerschepen varen met "
-     f"sleepboten door de draaikom (D 720 m) het hoofdbekken in, zwaaien op de zwaaiplaats binnenhaven (D {nl(DO['zwaaiplaats_D_m'])} m = 1,5 LOA, "
-     "met sleepboten; het hoofdbekken is daar verbreed) en worden achteruit de insteek in gesleept, zodat ze met de kop naar buiten afmeren. "
+     f"sleepboten door de draaikom (D 720 m) het hoofdbekken in, zwaaien op de zwaaiplaats binnenhaven (D {nl(DO['zwaaiplaats_D_m'])} m = 2 x LOA van het maatgevende "
+     "containerschip; het hoofdbekken is daar verbreed, zodat de draai zonder krappe marges lukt) en worden achteruit de insteek in "
+     "gesleept, zodat ze met de kop naar buiten afmeren. "
      f"De zwaaiplaats ligt {nl(DO['zwaaiplaats_vrij_van_schepen_m'])} m vrij van afgemeerde schepen en {nl(DO['zwaaiplaats_vrij_van_land_m'])} m van de oever. "
      f"Draaikom voorhaven {nl(DO['draaikom_vrij_van_schepen_m'])} m vrij; stopweg {nl(DO['stopweg_mond_draaikom_m'])} m = {nl(DO['stopweg_in_LOA'], 1)} LOA.",
      "Verwerkt", "Toetsen met bochtstralen uit PIANC WG121 en een nautische simulatie met sleepboten."),
     ("B05", "Toegangsgeul en sleepboten", "SO: geul knikt 15 gr op 2,2 km buiten de mond; geen sleepbootkoppelpunt.",
-     f"DO: rechte geul 220 m, -18,20 m MLWS, in het verlengde van de havenmond; koppelpunt {nl(DO['sleepboot_buiten_mond_m'])} m buiten de mond (A4). "
-     f"Bodemmodel uit GEBCO 2026 + Copernicus DEM (DO-10): het kustplateau is vlak (-13 tot -17 m); de natuurlijke bodem is pas op "
-     f"{nl(DO['geullengte_buiten_mond_m'])} m overal dieper dan -18,2 m MLWS (-15 m op {nl(D['DO'].get('info', {}).get('geul_15', 24000) or 24000)} m). "
-     "Geul daarom 35 km lang; zone 2/3 gesplitst op de -15 m-lijn.",
+     f"DO: geul 220 m, -18,20 m MLWS: 2,5 km recht in het verlengde van de havenmond (koppelpunt sleepboten op "
+     f"{nl(DO['sleepboot_buiten_mond_m'])} m, A4), dan een bocht met straal 3.400 m (ca. 10 x LOA, verbreed tot 260 m, A14) naar 145 gr en "
+     f"recht tot de natuurlijke -18,2 m MLWS. Bodemmodel GEBCO 2026 + Copernicus DEM (DO-10): naar het ZO is het veel eerder diep. "
+     f"Lengte buiten de mond {nl(DO['geullengte_buiten_mond_m'] / 1000, 1)} km met {nl(INFO.get('geul_gekozen_volume', 0) / 1e6, 1)} mln m3 "
+     f"(rechtdoor: {nl(VR.get('lengte', 0) / 1000, 1)} km, {nl(VR.get('volume', 0) / 1e6, 1)} mln m3). De haven 1 km verder in zee leggen "
+     f"bespaart ca. {nl(VZ.get('bagger_eerste_km', 0) / 1e6, 1)} mln m3 bagger maar kost ca. {nl(VZ.get('dam_steen_per_km', 0) / 1e6, 2)} mln m3 "
+     "extra stortsteen in de dammen: ongeveer kostenneutraal, daarom niet gedaan. Zone 2/3 gesplitst op de -15 m-lijn.",
      "Deels open", "Multibeampeiling langs het tracé; MLWS-DHN koppelen; geul eventueel gefaseerd (eerst -15,5 m, getijvenster)."),
     ("B06", "LNG-steiger en tanks", f"SO: LNG-tanks direct achter het containerterrein, op {nl(SO['lng_tank_tot_containerterrein_m'])} m.",
-     f"DO: LNG-steiger achter het midden van de zuidelijke dam (golftoets Hs {nl(_gt('LNG')['hs'], 2)} m < 1,0 m; bij de havenmond "
-     f"{nl(_gt('Variant: LNG')['hs'], 2)} m). Tanks oostelijk in de LNG-zone: cryogene leiding ca. {nl(DT.get('lng_leiding_m', 0) / 1000, 1)} km. "
+     f"DO: LNG-steiger op de gunstigste plek achter de zuidelijke dam (golftoets met reflectie Hs {nl(_gt('LNG')['hs'], 2)} m <= 1,0 m; "
+     f"bij de havenmond {nl(_gt('Variant: LNG')['hs'], 2)} m). Tanks in het zuidelijke deel van de LNG-zone, zodat de 250 m-zone ruim buiten "
+     f"het containerterrein blijft; cryogene leiding ca. {nl(DT.get('lng_leiding_m', 0) / 1000, 1)} km. "
      f"Veiligheidszone 250 m rond schip/steiger en rond de tanks, nautische controlezone 500 m (Hong Kong LNG-terminal; literatuur 250-750 m): "
      f"geen andere schepen of gebouwen in de 250 m-zones; draaikom {nl(DO['vz_draaikom_tot_ligplaatszone_m'])} m buiten de zone, "
      f"containerterrein {nl(DO['vz_containerterrein_tot_tankzone_m'])} m buiten de tankzone. Ligplaats en vaarweg -16,20 m MLWS.",
      "Verwerkt / QRA open", "QRA (plaatsgebonden en groepsrisico) en definitieve zones; N-1-voorraadbeleid kiezen."),
     ("B07", "Droge bulk (graan) en RoRo", f"SO: gedeeld perceel van {nl(SO['graan_ha'])} ha aan de noordkade, weg kruist het terrein.",
-     f"DO: graan {nl(DO['graan_ha'], 1)} ha aan de noordkade (render 10) met silo en transportband; RoRo {nl(DO['roro_ha'], 1)} ha in de "
-     "noordoosthoek van vinger 7/8 met kade aan het insteekbekken; ieder een kade van 300 m en een eigen poort.",
+     f"DO: graan {nl(DO['graan_ha'], 1)} ha aan de noordkade (render 10) met silo en transportband; de graan- en havendienstkade zijn "
+     f"open kades op palen boven een golfdempend talud (Cr 0,45 i.p.v. 0,9 voor een kademuur; Hs {nl(_gt('Graan')['hs'], 2)} m). RoRo "
+     f"{nl(DO['roro_ha'], 1)} ha op vinger 7/8 met kade 400 m dieper in de insteek (Hs {nl(_gt('RoRo')['hs'], 2)} m <= 0,3 m); ieder een "
+     "kade van 300 m en een eigen poort.",
      "Verwerkt", "Rijcircuit RoRo en conveyorroute graan detailleren."),
     ("B08", "Fasering", "SO: containerfase 1 aan het zuideinde; alle bekkens in fase 1 baggeren.",
      f"DO: containers fase 1 aan de noordkop (C1-C2), de kade groeit zuidwaarts langs de westzijde van vinger 6; gebaggerd {nl(DO['binnenbekken_m2']['1'] / 1e4, 1)} / "
@@ -109,6 +119,8 @@ MAATSTAAT = [
     ("Geullengte buiten havenmond", "m", round(DO["geullengte_buiten_mond_m"]), None, "Nautiek D31", "GEBCO, geen peiling"),
     ("Vaarafstand geuleinde - draaikom", "m", round(DO["geullengte_totaal_vanaf_draaikom_m"]), None, "Nautiek D31", "GEBCO, geen peiling"),
     ("Vrije draaikom voorhaven diameter", "m", 720, 720, "Nautiek D28", "vrij getoetst"),
+    ("Geul: recht stuk / bochtstraal / richting", "m / m / gr", "2.500 / 3.400 / 145", None, "PIANC WG121 (R >= 5 LOA)", "bocht 260 m breed"),
+    ("Geul rechtdoor (variant)", "m", round(VR.get("lengte", 0)), None, "DO-10", "afgevallen"),
     ("Draaikom tot afgemeerde schepen", "m", round(DO["draaikom_vrij_van_schepen_m"]), ">0", "", "voldoet"),
     ("Draaikom tot kades/dammen", "m", round(DO["draaikom_vrij_van_kades_dammen_m"]), ">0", "", "voldoet"),
     ("Havenmond vrij tussen footprints", "m", round(DO["havenmond_vrij_m"]), 350, "Nautiek D29", "voldoet"),
@@ -124,12 +136,12 @@ MAATSTAAT = [
     ("Graanterrein", "ha", round(DO["graan_ha"], 1), 30, "Invoer D39 (vraag 5,1)", "gelijk"),
     ("RoRo-kade", "m", 300, 300, "rapport 8.2", "gelijk"),
     ("RoRo-terrein", "ha", round(DO["roro_ha"], 1), 30, "Invoer D46 (vraag 26,9)", "gelijk"),
-    ("Zwaaiplaats binnenhaven (met sleepboten)", "m", round(DO["zwaaiplaats_D_m"]), 501, "1,5 x LOA container", "vrij getoetst"),
+    ("Zwaaiplaats binnenhaven", "m", round(DO["zwaaiplaats_D_m"]), 668, "2 x LOA container", "vrij getoetst"),
     ("  afstand tot oever", "m", round(DO["zwaaiplaats_vrij_van_land_m"]), ">0", "", "voldoet"),
     ("Dieptezone LNG-vaarweg en -ligplaats", "m MLWS", -16.20, -16.20, "diepgang 12,5 + 3,7", "bespaart bagger"),
     ("Dieptezone RoRo-ligplaats", "m MLWS", -13.70, -13.70, "diepgang 10,0 + 3,7", "bespaart bagger"),
     ("Golftoets containers (Hs insteek)", "m", round(_gt("Containers")["hs"], 2), 0.5, "DO-09", "voldoet"),
-    ("Golftoets graan (Hs)", "m", round(_gt("Graan")["hs"], 2), 1.0, "DO-09", "voldoet"),
+    ("Golftoets graan (Hs, open kade)", "m", round(_gt("Graan")["hs"], 2), 1.0, "DO-09", "voldoet"),
     ("Golftoets RoRo (Hs)", "m", round(_gt("RoRo")["hs"], 2), 0.3, "DO-09", "voldoet"),
     ("Golftoets LNG (Hs)", "m", round(_gt("LNG")["hs"], 2), 1.0, "DO-09", "voldoet"),
     ("LNG cryogene leiding", "m", round(DT.get("lng_leiding_m", 0)), None, "", "ingekort"),
@@ -425,7 +437,7 @@ def write_docx(path, figs):
         ("11 gebogen golfbrekers, 14 ingang naar het OZO", "Overgenomen; havenmond 350 m vrij (render ca. 640 m)"),
         ("Toegang ca. 26 km tot ca. -25 m", f"Geul 220 m tot -18,20 m MLWS, {nl(DO['geullengte_buiten_mond_m'])} m (GEBCO)"),
         ("-20 m-cirkel in de voorhaven", "Vrije draaikom D 720 m (containerschepen)"),
-        ("-16 m-cirkel in het hoofdbekken", "Zwaaiplaats binnenhaven D 500 m met sleepboten"),
+        ("-16 m-cirkel in het hoofdbekken", "Zwaaiplaats binnenhaven D 670 m (2 x LOA)"),
         ("Hoofdbekken, twee vingers, twee insteekbekkens", "Overgenomen (vorm gelijk aan de render)"),
         ("6 containerterminal", "Containers 144 ha; kraankade aan de westzijde (insteek, beschut)"),
         ("10 graan aan de noordkade", "Graan 30 ha"),
@@ -449,7 +461,8 @@ def write_docx(path, figs):
       "staat de render op laag HV-REFERENTIE.")
     bullets([
         f"Voorhaven met twee gebogen golfbrekers (footprint 90 m, voorlopig); havenmond {nl(DO['havenmond_vrij_m'])} m vrij, ingang naar het OZO.",
-        f"Rechte toegangsgeul 220 m bodembreedte, -18,20 m MLWS; {nl(DO['geullengte_buiten_mond_m'])} m buiten de mond (GEBCO-bodemmodel, DO-10).",
+        f"Toegangsgeul 220 m bodembreedte, -18,20 m MLWS; 2,5 km recht, bocht R 3.400 m naar 145 gr, totaal "
+        f"{nl(DO['geullengte_buiten_mond_m'] / 1000, 1)} km buiten de mond (GEBCO-bodemmodel, DO-10).",
         f"Sleepbootkoppelpunt {nl(DO['sleepboot_buiten_mond_m'])} m buiten de mond; stopweg mond - draaikom {nl(DO['stopweg_mond_draaikom_m'])} m ({nl(DO['stopweg_in_LOA'], 1)} LOA).",
         f"Vrije draaikom D 720 m in de voorhaven ({nl(DO['draaikom_vrij_van_schepen_m'])} m vrij van schepen) en zwaaiplaats binnenhaven "
         f"D {nl(DO['zwaaiplaats_D_m'])} m met sleepboten ({nl(DO['zwaaiplaats_vrij_van_schepen_m'])} m vrij).",
@@ -469,13 +482,19 @@ def write_docx(path, figs):
         doc.add_paragraph("Figuur 4 Overtrek: Porto Central-render op de luchtfoto met het DO (DO-05).").alignment = WD_ALIGN_PARAGRAPH.CENTER
     h("6.1 Golftoets ligplaatsen (DO-09)", 2)
     p("De golfdoordringing is geschat met diffractie door opeenvolgende openingen (Huygens-Kirchhoff): havenmond, ingang hoofdbekken en "
-      "ingang insteek. Golven uit NO tot ZZO, Hs buiten 2,5 m (bovenkant Deel 1), T 8 s. Grenzen voor laden en lossen (indicatief, PIANC/"
-      "handboeken): containers 0,5 m, RoRo 0,3 m, graan en LNG 1,0 m. Reflectie, refractie en lange golven zitten er niet in; een numeriek "
-      "golfmodel volgt.")
+      "ingang insteek. Daarbij is reflectie (eerste orde) meegenomen met spiegelbronnen tegen de dammen, taluds en kades; de energie van "
+      "het directe en de gereflecteerde velden is opgeteld. Reflectiecoëfficiënten: verticale kademuur 0,9, open kade op palen boven een "
+      "talud 0,45, stortsteen/talud 0,4. Golven uit NO tot ZZO, Hs buiten 2,5 m (bovenkant Deel 1), T 8 s, getoetst op punten over de hele "
+      "scheepslengte. Grenzen voor laden en lossen (indicatief, PIANC/handboeken, dwarsgolven): containers 0,5 m, RoRo 0,3 m, graan en "
+      "LNG 1,0 m. Refractie, hogere-orde reflecties en lange golven zitten er niet in; een numeriek golfmodel volgt.")
     table(["Ligplaats", "Kd max", "Hs (m)", "Grens (m)", "Toets"],
           [(k, nl(v["kd_max"], 2), nl(v["hs"], 2), nl(v["grens"], 1), "voldoet" if v["voldoet"] else "voldoet niet") for k, v in GT.items()],
           [7, 2, 2, 2, 2.5])
-    p("Gevolg: de containerkade is naar de westzijde van vinger 6 verplaatst en de LNG-steiger naar het midden van de zuidelijke dam.")
+    p("Zonder reflectie voldeden alle ligplaatsen; met reflectie niet meer: de verticale noordkade kaatste golven naar de graanligplaats "
+      "en de RoRo-ligplaats, en de zuidelijke dam versterkte de golven bij de LNG-steiger. Maatregelen: containerkade aan de westzijde van "
+      "vinger 6, graan- en havendienstkade als open kade op palen, RoRo-ligplaats 400 m dieper in de insteek en de LNG-steiger op de "
+      "gunstigste plek langs de dam. Graan en LNG zitten dicht bij de grens van 1,0 m, maar daar komen de golven vrijwel in de lengterichting "
+      "van het schip binnen, waarvoor hogere grenzen gelden (ca. 1,5 m).")
     h("6.2 Dieptezones, bodemmodel en grondwerk (DO-10)", 2)
     p("Waterdiepte = diepgang + 3,7 m (squat 0,6, golfbeweging 0,5, trim 0,2, kielspeling 0,8, peilonnauwkeurigheid 0,6, baggertolerantie 0,5, "
       "reserve 0,5). Containers en graan (diepgang 14,5 m) -18,20 m; LNG (12,5 m) -16,20 m; RoRo (10,0 m) -13,70 m MLWS. Alleen de vaarroute "

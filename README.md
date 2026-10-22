@@ -31,11 +31,11 @@ Porto Central-masterplan als vormreferentie.
 
 ## Belangrijkste maten (DO)
 
-* Geul 220 m bodembreedte, −18,20 m MLWS, 35.000 m buiten de mond: volgens GEBCO 2026 is de natuurlijke bodem pas daar overal dieper dan −18,2 m MLWS (−15 m op 24 km). Geen peiling: indicatief.
-* Dieptezones (diepgang + 3,7 m): containers, graan en geul −18,20; LNG-vaarweg en -ligplaats −16,20; RoRo −13,70 m MLWS. Baggeren ca. 92,5 mln m³ (celmethode, indicatief).
-* Golftoets (diffractie, Hs buiten 2,5 m): alle ligplaatsen voldoen; containerkade aan de oostzijde en LNG bij de havenmond voldoen niet (DO-09).
+* Geul 220 m bodembreedte, −18,20 m MLWS: 2,5 km recht vanaf de mond, bocht R 3.400 m naar 145°, dan recht tot de natuurlijke −18,2 m MLWS (GEBCO 2026): ca. 20 km buiten de mond in plaats van 35 km rechtdoor. Geen peiling: indicatief.
+* Dieptezones (diepgang + 3,7 m): containers, graan en geul −18,20; LNG-vaarweg en -ligplaats −16,20; RoRo −13,70 m MLWS. Baggervolumes per vak in DO-10 (celmethode, indicatief).
+* Golftoets (diffractie + reflectie, Hs buiten 2,5 m): alle ligplaatsen voldoen met open graan-/havendienstkade, RoRo dieper in de insteek en LNG op de gunstigste plek langs de dam (DO-09).
 * LNG: 250 m veiligheidszone rond schip/steiger en tanks, 500 m nautische controlezone (indicatief, QRA volgt).
-* Havenmond 350 m vrij tussen de golfbrekerfootprints. Vrije draaikom voorhaven D 720 m, zwaaiplaats binnenhaven D 500 m met sleepboten. Stopweg van mond tot draaikom 1.700 m (5,1 LOA). Sleepbootkoppelpunt 1.500 m buiten de mond.
+* Havenmond 350 m vrij tussen de golfbrekerfootprints. Vrije draaikom voorhaven D 720 m, zwaaiplaats binnenhaven D 670 m (2 × LOA). Stopweg van mond tot draaikom 1.700 m (5,1 LOA). Sleepbootkoppelpunt 1.500 m buiten de mond.
 * Het DO is de Porto Central-render, overgetrokken op 10,035 m per pixel en 10° gedraaid op de kust (kustfit gemiddeld 31 m). Blad DO-05 toont de render op de luchtfoto met het DO erop.
 * Containervinger (6) 144 ha met 1.600 m kraankade aan het insteekbekken (fasen 72 / 108 / 144 ha), graan 30 ha aan de noordkade (10), RoRo 30 ha op vinger 7/8, havendiensten op de noordoosthoek.
 * Tankpark langs de zuidrand (9): LNG-zone met 3 × 180.000 m³ en ruimte voor een 4e tank, centrale ernaast. LNG-steiger (18) achter de zuidelijke dam.

@@ -16,7 +16,7 @@ import numpy as np
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RASTER = os.path.join(ROOT, "CAD", "Ondergrond", "bestaand_bodem_MLWS_EPSG31984.tif")
 MSL_MLWS = 0.7
-BBOX = (286000.0, 7636000.0, 340000.0, 7660000.0)  # W, S, E, N
+BBOX = (286000.0, 7610000.0, 350000.0, 7660000.0)  # W, S, E, N
 RES = 30.0
 _CACHE = {}
 
@@ -96,6 +96,35 @@ def drempel_afstand(start, richting, diepte, venster=2000.0, max_lengte=40000.0)
     return float(max_lengte), p
 
 
+def profiel_route(pts, stap=250.0, breedte=1000.0):
+    """Als profiel(), maar langs een polylijn (geul met bocht): (afstand langs de route, gemiddelde hoogte)."""
+    from shapely.geometry import LineString
+    ls = LineString(pts)
+    out = []
+    for s in np.arange(0, ls.length + 1e-6, stap):
+        p, q = ls.interpolate(s), ls.interpolate(min(ls.length, s + 1.0))
+        if s + 1.0 > ls.length:
+            p, q = ls.interpolate(s - 1.0), ls.interpolate(s)
+        L = math.hypot(q.x - p.x, q.y - p.y)
+        nx, ny = -(q.y - p.y) / L, (q.x - p.x) / L
+        c = ls.interpolate(s)
+        vals = [z_at(c.x + nx * o, c.y + ny * o) for o in np.linspace(-breedte, breedte, 5)]
+        out.append((float(s), float(np.nanmean(vals))))
+    return np.array(out)
+
+
+def drempel_route(pts, diepte, venster=2000.0):
+    """Eerste afstand langs de route waarna de natuurlijke diepte (over 'venster' gemiddeld) tot het einde >= 'diepte' is."""
+    p = profiel_route(pts)
+    w = max(1, int(venster / (p[1, 0] - p[0, 0])))
+    sm = np.convolve(p[:, 1], np.ones(w) / w, mode="same")
+    ok = -sm >= diepte
+    for i in range(len(ok)):
+        if ok[i:-w // 2 or None].all():
+            return float(p[i, 0])
+    return float(p[-1, 0])
+
+
 def volume(geom, ontwerpdiepte):
     """Celmethode: V = som A x max(0, ontwerpdiepte - bestaande diepte); geeft (volume m3, oppervlak m2, gem. bestaande diepte)."""
     from rasterio.features import geometry_mask
@@ -170,14 +199,14 @@ def grondwerk(d, maaiveld=5.0, zetting=0.5):
     for i in d.items:
         if i["layer"] == "HV-BAGGER" and i["phase"] <= 3:
             vak(i["label"] or "bekken", i["geom"], i.get("diepte", 18.2), 1)
-    Mw, Ew = d.P(*n["M"]), d.P(*n["eind"])
-    L = math.dist(Mw, Ew)
-    u = ((Ew[0] - Mw[0]) / L, (Ew[1] - Mw[1]) / L)
-    l15 = n.get("geul_15") or L / 2
-    P15 = (Mw[0] + u[0] * l15, Mw[1] + u[1] * l15)
-    if n.get("knik") is None:
-        vak("Geul tot DHN -15 m", LineString([Mw, P15]).buffer(110, cap_style="flat"), 18.2, 2)
-        vak("Geul voorbij DHN -15 m", LineString([P15, Ew]).buffer(110, cap_style="flat"), 18.2, 3)
+    from shapely.ops import substring
+    route = LineString(n.get("geul_route") or [d.P(*n["M"]), d.P(*n["eind"])])
+    l15 = n.get("geul_15") or route.length / 2
+    geul = unary_union([i["geom"] for i in d.items if i["layer"] == "HV-GEUL" and i.get("tag") == "geul_buiten"])
+    if not geul.is_empty:
+        knip = substring(route, l15, route.length).buffer(400, cap_style="flat")
+        vak("Geul tot DHN -15 m", geul.difference(knip), 18.2, 2)
+        vak("Geul voorbij DHN -15 m", geul.intersection(knip), 18.2, 3)
     for i in d.items:
         if i["layer"] == "HV-GEUL":
             vak("Geul (overig)", i["geom"], 18.2, 2)
