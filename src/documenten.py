@@ -33,7 +33,7 @@ BESLUITEN = [
      f"Locatie vastgesteld: Porto Central, Presidente Kennedy - Espírito Santo (29350-000). Havenas haaks op de kust (azimut 110 gr) "
      f"door het bouwterrein fase 1; kustpunt A1 E {nl(ANK['A1']['E'], 1)} / N {nl(ANK['A1']['N'], 1)}; bekkens landinwaarts op het Porto Central-terrein.",
      "Vastgelegd", "Ligging van de havenas op het terrein afstemmen met het bouwterrein fase 1 / masterplan."),
-    ("B02", "Havenvorm", "SO: schematische eerste schets naar het Porto Central-masterplan (rechthoekig raster).",
+    ("B02", "Havenvorm", "SO: eerste, grove schets op de Porto Central-render.",
      "DO: de Porto Central-render is op schaal overgetrokken (10,035 m per pixel, op de kust gedraaid): gebogen dammen met ingang naar "
      "het OZO, hoofdbekken oost-west langs de noordkade, schuine vingers en insteekbekkens evenwijdig aan de kust, containervinger (6) "
      "met de kraankade aan de insteekzijde, tankpark langs de zuidrand (9) en LNG-steiger bij de zuidelijke dam (18). Zie blad DO-05.",
@@ -41,8 +41,7 @@ BESLUITEN = [
     ("B03", "Havenmond", f"SO: 350 m tussen damhartlijnen, vrij tussen de footprints maar {nl(SO['havenmond_vrij_m'])} m.",
      f"DO: dammen verlegd, {nl(DO['havenmond_vrij_m'])} m vrij tussen de golfbrekerfootprints (90 m breed).",
      "Verwerkt", "Na golfbrekerontwerp (kruin, taluds) footprint en vrije breedte opnieuw meten."),
-    ("B04", "Draaikom en stopweg", f"SO: draaikom overlapt ligplaats C1 en de containerkade ({nl(SO['draaikom_overlap_schepen_m2'] / 1e4, 1)} ha); "
-     f"stopweg {nl(SO['stopweg_mond_draaikom_m'])} m < 5 LOA (1.670 m).",
+    ("B04", "Draaikom en stopweg", f"SO: draaikom te dicht bij de vinger: overlapt de containervinger ({nl(SO['draaikom_overlap_land_m2'] / 1e4, 1)} ha).",
      f"DO: draaikom in de voorhaven op de plaats van de -20 m-cirkel in de render; stopweg {nl(DO['stopweg_mond_draaikom_m'])} m = "
      f"{nl(DO['stopweg_in_LOA'], 1)} LOA; {nl(DO['draaikom_vrij_van_schepen_m'])} m vrij van afgemeerde schepen en "
      f"{nl(DO['draaikom_vrij_van_kades_dammen_m'])} m van kades/dammen.",
@@ -360,17 +359,16 @@ def write_docx(path, figs):
         doc.add_paragraph("Figuur 1 Overzicht zoekgebied en havenligging (DO-01).").alignment = WD_ALIGN_PARAGRAPH.CENTER
 
     h("4 Schetsontwerp (SO)")
-    p("Het schetsontwerp neemt de vorm van het Porto Central-masterplan (2016, p. 9) over: twee gebogen golfbrekers met de ingang naar het "
-      "oost-zuidoosten, een hoofdbekken langs de noordzijde, een brede containervinger met de kade direct aan de voorhaven, een insteekbekken "
-      "met een tweede vinger daarachter en een tank- en energiezone langs de zuidrand. De maten komen uit het rekenboek.")
+    p("Het schetsontwerp is een eerste, grove versie op de Porto Central-render: dezelfde dammen, het hoofdbekken, de schuine vingers "
+      "en het tankpark, maar met een aantal fouten die bij de bespreking naar voren kwamen (zie hoofdstuk 5).")
     table(["Kenmerk SO", "Waarde"], [
         ("Havenmond (hart-hart / vrij)", f"350 m / {nl(SO['havenmond_vrij_m'])} m"),
-        ("Draaikom", f"D 720 m; overlapt ligplaats C1 ({nl(SO['draaikom_overlap_schepen_m2'] / 1e4, 1)} ha)"),
-        ("Stopweg mond - draaikom", f"{nl(SO['stopweg_mond_draaikom_m'])} m = {nl(SO['stopweg_in_LOA'], 2)} LOA"),
-        ("Geul", f"220 m, knik 15 gr op 2,2 km buiten de mond, lengte {nl(SO['geullengte_buiten_mond_m'])} m"),
+        ("Draaikom", f"D 720 m; overlapt de containervinger ({nl(SO['draaikom_overlap_land_m2'] / 1e4, 1)} ha)"),
+        ("Geul", f"220 m, knik 15 gr op 2,2 km buiten de mond, lengte {nl(SO['geullengte_buiten_mond_m'])} m; geen sleepbootkoppelpunt"),
         ("Containerkade / terrein", "1.600 m / 72-108-144 ha; fase 1 aan het zuideinde van de vinger"),
         ("Graan + RoRo", f"gedeeld perceel {nl(SO['graan_ha'])} ha aan de noordkade, weg door het perceel"),
-        ("LNG + centrale", f"direct achter het containerterrein; tanks op {nl(SO['lng_tank_tot_containerterrein_m'])} m"),
+        ("LNG + centrale", f"tanks op {nl(SO['lng_tank_tot_containerterrein_m'])} m van het containerterrein"),
+        ("Bekkens", "alle bekkens (ook hoofdbekken west en tweede insteek) in fase 1 gebaggerd"),
     ], [6, 11])
     h("4.1 Vergelijking met het masterplan en de render", 2)
     table(["Porto Central (nr.)", "Definitief ontwerp Groep 1"], [

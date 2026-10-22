@@ -107,6 +107,7 @@ class Design:
         self.code = code
         self.tf = tf or to_world  # lokale ontwerpcoördinaten -> EPSG:31984
         self.center = None
+        self.version = "1.0"
         self.scale = 10000
         self.info = {}
         self.items = []  # dicts: layer, geom (wereld), label, phase, style
@@ -171,195 +172,12 @@ def add_pt(a, b, s=1.0):
 #   - tank- en energiezone langs de zuidrand (9), LNG-steiger bij de zuidelijke dam (18)
 # SO = eerste schets met de bespreekpunten; DO = verwerkte versie.
 # ======================================================================================
-def build(code):
-    so = code == "SO"
-    d = Design(code)
-    ang = math.radians(13.0)  # havenmond/geul 13 graden zuidelijker dan de havenas (masterplan: ingang naar OZO)
-    dv = (math.cos(ang), -math.sin(ang))
-    nv = (math.sin(ang), math.cos(ang))
-    T = (100.0, 100.0) if so else (300.0, 100.0)
-    stop = 1650.0 if so else 1700.0
-    M = add_pt(T, dv, stop)
-    half = 175.0 if so else 220.0  # SO: 350 m tussen damhartlijnen; DO: 350 m vrij tussen footprints
-    hn, hs = add_pt(M, nv, half), add_pt(M, nv, -half)
-
-    # --- golfbrekers (11) ---------------------------------------------------------------
-    bwn = breakwater(d, [(-50, 1900), (900, 1900), (hn[0] - 450, 1650), (hn[0] - 60, 900), hn], "Noordelijke golfbreker")
-    bws = breakwater(d, [(-200, -1850), (900, -1850), (hs[0] - 400, -1600), (hs[0] - 120, -1100), hs], "Zuidelijke golfbreker")
-
-    # --- toegangsgeul (14) en draaikom -------------------------------------------------------
-    if so:
-        knik = add_pt(M, dv, 2200)
-        a2 = ang - math.radians(15)
-        eind = add_pt(knik, (math.cos(a2), -math.sin(a2)), 8000)
-        axis_out = LineString([M, knik, eind])
-    else:
-        eind = add_pt(M, dv, 10000)
-        knik = None
-        axis_out = LineString([M, eind])
-    d.add("HV-GEUL", axis_out.buffer(110, cap_style="flat", join_style="mitre"), label="Hoofdgeul 220 m, -18,20 m MLWS")
-    inner = LineString([T, M]).buffer(110, cap_style="flat")
-    d.add("HV-GEUL", inner)
-    d.add("HV-GEUL-AS", LineString([T, M] + list(axis_out.coords)[1:]))
-    circle = Point(T).buffer(360, 128)
-    d.add("HV-DRAAIKOM", circle, label="Vrije draaikom D 720 m")
-    tug = add_pt(M, dv, 1500)
-    if not so:
-        d.add("HV-SLEEPBOOT", Point(tug).buffer(60), label="Sleepbootkoppelpunt")
-
-    # --- LNG-steiger (18) aan de lijzijde van de zuidelijke dam --------------------------------
-    d.add("HV-KADE", LineString([(-200, -1330), (720, -1330)]), label="LNG-steiger")
-    d.add("HV-KADE", rect(670, 770, -1370, -1295))
-    lng_ship = ship_u(d, -1295, 574.5, 865.5, 1, 45.8, "GASLOG GREECE")
-    lng_env = rect(520, 920, -1295, -1180)
-    d.add("HV-SCHIP", lng_env, tag="lng_env")
-    for du in (550, 630, 810, 890):
-        d.add("HV-KADE", Point(du, -1305).buffer(10))
-    lng_route = unary_union([LineString([T, (720, -1150)]).buffer(150, cap_style="round"), rect(450, 990, -1380, -1130)])
-
-    # --- water: voorhaven, containerbekken, hoofdbekken, insteekbekken -----------------------
-    d.add("HV-BAGGER", unary_union([inner, circle, lng_route]), label="Voorhaven + LNG-insteek", tag="voorhaven")
-    if so:
-        d.add("HV-BAGGER", rect(-200, 450, -1100, 1150), label="Containerbekken", tag="bekken")
-        d.add("HV-BAGGER", rect(-2600, -200, 700, 1150), label="Hoofdbekken (alles fase 1)", tag="bekken")
-        d.add("HV-BAGGER", rect(-1550, -1100, -1050, 700), label="Insteekbekken", tag="bekken")
-    else:
-        for v0, v1, ph in [(-300, 1150, 1), (-700, -300, 2), (-1100, -700, 3)]:
-            d.add("HV-BAGGER", rect(-200, 450, v0, v1), label=f"Containerbekken F{ph}" if ph > 1 else "Containerbekken", phase=ph, tag="bekken")
-        d.add("HV-BAGGER", rect(-1600, -200, 700, 1150), label="Hoofdbekken", tag="bekken")
-        d.add("HV-BAGGER", rect(-2600, -1600, 700, 1150), label="Reserve hoofdbekken (fase 4)", phase=4, style="dashed", tag="reserve_water")
-        d.add("HV-BAGGER", rect(-1550, -1100, 100, 700), label="Insteekbekken", tag="bekken")
-        d.add("HV-BAGGER", rect(-1550, -1100, -1050, 100), label="Reserve insteek (fase 4)", phase=4, style="dashed", tag="reserve_water")
-
-    # --- containerterminal (6): vinger met kade aan de voorhaven -----------------------------
-    if so:
-        parts = [(-1050, -250, 1), (-250, 150, 2), (150, 550, 3)]
-        bph = [3, 2, 1, 1]
-    else:
-        parts = [(-250, 550, 1), (-650, -250, 2), (-1050, -650, 3)]
-        bph = [1, 1, 2, 3]
-    tot = {1: "F1 2025: 2 lp, 800 m, 72 ha", 2: "F2 2035: +1 lp, 108 ha", 3: "F3 2045: +1 lp, 144 ha"}
-    for v0, v1, ph in parts:
-        d.add("HV-CONTAINER", rect(-1100, -200, v0, v1), label=tot[ph], phase=ph, tag="cyard")
-        d.add("HV-KADE", LineString([(-200, v1), (-200, v0)]), phase=ph, tag="ckade")
-    for i in range(4):
-        vt = 550 - 400 * i
-        vm = vt - 200
-        ship_v(d, -200, vm - LOA / 2, vm + LOA / 2, 1, BEAM, f"C{i + 1}", phase=bph[i])
-    if not so:
-        d.add("HV-KADE", LineString([(-1100, 650), (-1100, -1000)]), style="dashed", phase=4, label="reserve kade westzijde (fase 4)")
-        for uu, t in [(-250, "F1 | F2"), (-650, "F2 | F3")]:
-            d.add("HV-FASEGRENS", LineString([(-1100, uu), (450, uu)]), label=t)
-
-    # --- graan (10) en RoRo (8) ----------------------------------------------------------------
-    if so:
-        d.add("HV-GRAAN", rect(-1700, -600, 1150, 1750), label="Graan + RoRo gedeeld perceel", tag="graan_plot")
-        d.add("HV-KADE", LineString([(-1000, 1150), (-700, 1150)]), label="Graankade 300 m")
-        d.add("HV-KADE", LineString([(-1550, 1150), (-1250, 1150)]), label="RoRo-kade 300 m")
-        ship_u(d, 1150, -964.5, -735.5, -1, 32.26, "Graanschip")
-        ship_u(d, 1150, -1510, -1290, -1, 37.7, "RoRo-schip")
-        d.add("HV-RESERVE", rect(-2600, -1700, 1150, 1750), label="Reserve")
-        d.add("HV-RESERVE", rect(-2600, -1550, -1050, 700), label="Reserve")
-    else:
-        d.add("HV-GRAAN", rect(-1100, -600, 1150, 1750), label="Graan 30 ha", tag="graan_plot")
-        d.add("HV-KADE", LineString([(-1000, 1150), (-700, 1150)]), label="Graankade 300 m")
-        ship_u(d, 1150, -964.5, -735.5, -1, 32.26, "Graanschip")
-        d.add("HV-GRAAN", rect(-1050, -800, 1350, 1600))  # silo's/opslag
-        d.add("HV-LEIDING", LineString([(-850, 1150), (-850, 1350)]), style="dashed")  # transportband
-        d.add("HV-RORO", rect(-2050, -1550, 100, 700), label="RoRo 30 ha", tag="roro_plot")
-        d.add("HV-KADE", LineString([(-1550, 250), (-1550, 550)]), label="RoRo-kade 300 m")
-        ship_v(d, -1550, 290, 510, 1, 37.7, "RoRo-schip")
-        d.add("HV-RORO", rect(-1550, -1515, 380, 420))  # ramp
-        d.add("HV-RESERVE", rect(-2050, -1550, -1050, 100), label="Reserve stukgoed/supply (7/8)")
-        d.add("HV-RESERVE", rect(-2600, -2050, -1050, 700), label="Reserve bedrijven (12)")
-        d.add("HV-RESERVE", rect(-2600, -1200, 1150, 1750), label="Reserve industrie (3)")
-        d.add("HV-HAVENDIENST", rect(-500, -60, 1150, 1500), label="Havendiensten/sleepboten (17)", tag="havendienst")
-        d.add("HV-KADE", LineString([(-450, 1150), (-150, 1150)]))
-
-    # --- LNG-zone en centrale (9) langs de zuidrand -----------------------------------------------
-    if so:
-        lz = rect(-800, -200, -1500, -1100)
-        tanks = [Point(-700 + 150 * k, -1200).buffer(45, 64) for k in range(3)]
-        cz = rect(-1900, -850, -1500, -1100)
-    else:
-        lz = rect(-800, -200, -1700, -1200)
-        tanks = [Point(-700 + 150 * k, -1560).buffer(45, 64) for k in range(3)]
-        cz = rect(-1900, -850, -1700, -1200)
-    d.add("HV-LNG", lz, label="LNG-tanks + hervergassing", tag="lng_zone")
-    for t in tanks:
-        d.add("HV-LNG", t, tag="tank")
-    if not so:
-        d.add("HV-LNG", Point(-250, -1560).buffer(45, 64), style="dashed")  # optie 4e tank (N-1)
-        d.add("HV-LNG", rect(-700, -300, -1440, -1360))  # hervergassing
-    d.add("HV-CENTRALE", cz, label="Centrale + utilities", tag="centrale")
-
-    # --- leidingen, wegen en spoor ------------------------------------------------------------------
-    d.add("HV-LEIDING", LineString([(720, -1330), (-200, -1330)]), style="dashed")
-    if not so:
-        d.add("HV-LEIDING", LineString([(-700, -1400), (-850, -1400)]), style="dashed")
-        d.add("HV-LEIDING", LineString([(-1900, -1650), (-2750, -1650)]), style="dashed")  # gasnet
-        d.add("HV-LEIDING", LineString([(300, -1080), (-200, -1180), (-850, -1180)]), style="dotted")  # koelwater in
-        d.add("HV-LEIDING", LineString([(-1400, -1700), (-1400, -1980), (400, -1980)]), style="dotted")  # koelwater uit
-        d.add("HV-WEG", LineString([(-2750, -1750), (-2750, 1800), (-280, 1800), (-280, 1500)]))
-        d.add("HV-WEG", LineString([(-2750, -1125), (-200, -1125)]))
-        d.add("HV-WEG", LineString([(-2750, 400), (-2050, 400)]))
-        d.add("HV-WEG", LineString([(-3600, 0), (-2750, 0)]))
-        d.add("HV-WEG", LineString([(-1080, -1125), (-1080, 540)]), style="dashed")  # terminalweg west
-        d.add("HV-SPOOR", LineString([(-3600, 60), (-2800, 60), (-2800, 1760), (-850, 1760)]))
-        d.add("HV-SPOOR", LineString([(-2800, 60), (-2800, -1090), (-1050, -1090), (-1050, -1000)]))
-        for gu, gv in [(-650, -1125), (-850, 1800), (-2050, 400), (-500, -1160), (-1400, -1160), (-280, 1520)]:
-            d.add("HV-WEG", Point(gu, gv).buffer(18))  # terminalpoorten
-    else:
-        d.add("HV-WEG", LineString([(-2700, -1550), (-2700, 1800), (-600, 1800)]))
-        d.add("HV-WEG", LineString([(-2700, -1050), (-200, -1050)]))
-        d.add("HV-WEG", LineString([(-1150, 1800), (-1150, 1180)]), label="Weg door perceel")
-        d.add("HV-SPOOR", LineString([(-2750, -1550), (-2750, 1760), (-600, 1760)]))
-
-    d.notes = dict(M=M, T=T, hn=hn, hs=hs, dv=dv, nv=nv, stop=stop, tug=tug, eind=eind, knik=knik,
-                   bwn=bwn, bws=bws, circle=circle, lng_env=lng_env, tanks=tanks)
-
-    # --- maatvoering ----------------------------------------------------------------------------------
-    d.dim((-200, 550), (-200, -1050), -170, "containerkade 4 x 400 = 1.600 m")
-    d.dim((-1100, -1050), (-200, -1050), -60, "900 m")
-    d.dim((-1600, 700), (-1600, 1150), 120, "450 m")
-    d.dim((-1550, 100), (-1100, 100), -80, "450 m")
-    d.dim((-1000, 1150), (-700, 1150), 90, "300 m")
-    if not so:
-        d.dim((-1100, 1750), (-600, 1750), 70, "500 m")
-        d.dim((-1100, 1150), (-1100, 1750), 70, "600 m")
-        d.dim((-1550, 250), (-1550, 550), 110, "300 m")
-        d.dim((-2050, 100), (-1550, 100), -70, "500 m")
-        d.dim((-2050, 100), (-2050, 700), 80, "600 m")
-        d.dim((520, -1180), (920, -1180), 70, "400 m")
-        d.dim(add_pt(M, dv, 1500), M, 260, "1.500 m")
-    d.dim(add_pt(add_pt(M, dv, 500), nv, -110), add_pt(add_pt(M, dv, 500), nv, 110), 200, "220 m")
-    if so:
-        d.dim(hs, hn, 260, "350 m hart-hart")
-    else:
-        d.dim(add_pt(hs, nv, 45), add_pt(hn, nv, -45), 300, "350 m vrij")
-    d.dim(M, T, 420, f"{nl0(stop)} m = {stop / LOA:.1f} LOA".replace(".", ","))
-
-    pts = [("A1", "Kustpunt havenas (waterlijn)", (0, 0)), ("A2", "Middelpunt vrije draaikom", T),
-           ("A3", "Midden havenmond", M)]
-    if so:
-        pts += [("A4", "Geulknik", knik), ("A5", "Eindpunt geul (voorlopig)", eind)]
-    else:
-        pts += [("A4", "Sleepbootkoppelpunt", tug), ("A5", "Eindpunt geul (voorlopig)", eind),
-                ("A6", "Wortel noordelijke golfbreker", (-50, 1900)), ("A7", "Wortel zuidelijke golfbreker", (-200, -1850)),
-                ("A8", "Containerkade noordeinde (F1)", (-200, 550)), ("A9", "Containerkade zuideinde (F3)", (-200, -1050)),
-                ("A10", "Midden LNG-ligplaats", (720, -1270)), ("A11", "Graankade midden", (-850, 1150)),
-                ("A12", "RoRo-kade midden", (-1550, 400))]
-    for k, nm, (u, v) in pts:
-        d.anchor_pt(k, nm, u, v)
-    return d
-
-
 def nl0(x):
     return f"{x:,.0f}".replace(",", ".")
 
 
 def build_so():
-    return build("SO")
+    return build_do_render(so=True)
 
 
 def build_do():
@@ -436,23 +254,24 @@ def _ship_along(p0, p1, side, beam_m, label, d, phase=1, length_m=None):
     return g
 
 
-def build_do_render(coast=None):
+def build_do_render(coast=None, so=False):
     if coast is None:
         coast = LineString(json.load(open(os.path.join(OND, "coast.json"))))
     phi, err = fit_render_rotation(coast)
     A = render_affine(phi)
-    d = Design("DO", tf=lambda g: affinity.affine_transform(g, A))
+    d = Design("SO" if so else "DO", tf=lambda g: affinity.affine_transform(g, A))
+    d.version = "2.0" if so else "3.0"
     d.info = dict(render_schaal_m_per_px=RENDER_S, render_draaiing_graden=phi, render_kustfit_gem_afwijking_m=err,
                   render_affine=A, render_anker=RENDER_ANCHOR)
     s = RENDER_S
 
     # --- golfbrekers (11) en havenmond (14) ---------------------------------------------------
-    T = (828.0, 312.0)                      # middelpunt vrije draaikom (-20 m in de render)
+    T = (800.0, 305.0) if so else (828.0, 312.0)  # middelpunt vrije draaikom (-20 m in de render)
     M = (990.0, 370.0)                      # midden havenmond
     L = math.hypot(M[0] - T[0], M[1] - T[1])
     dv = ((M[0] - T[0]) / L, (M[1] - T[1]) / L)   # vaarrichting naar zee (beeld)
     nv = (-dv[1], dv[0])                          # loodrecht, naar het zuiden in beeld
-    half = (175.0 + 45.0) / s                     # 350 m vrij + halve damvoet
+    half = (175.0 if so else 175.0 + 45.0) / s    # DO: 350 m vrij + halve damvoet; SO: 350 m hart-hart
     hn = (M[0] - nv[0] * half, M[1] - nv[1] * half)
     hs = (M[0] + nv[0] * half, M[1] + nv[1] * half)
     bw = 45.0 / s
@@ -473,13 +292,22 @@ def build_do_render(coast=None):
     geul_px = 10000.0 / s
     eind = (M[0] + dv[0] * geul_px, M[1] + dv[1] * geul_px)
     tug = (M[0] + dv[0] * 1500 / s, M[1] + dv[1] * 1500 / s)
-    d.add("HV-GEUL", LineString([M, eind]).buffer(110 / s, cap_style="flat"), label="Hoofdgeul 220 m, -18,20 m MLWS")
+    knik = None
+    if so:  # SO: geul knikt 15 graden op 2,2 km buiten de mond
+        knik = (M[0] + dv[0] * 2200 / s, M[1] + dv[1] * 2200 / s)
+        a2 = math.atan2(dv[1], dv[0]) - math.radians(15)
+        eind = (knik[0] + math.cos(a2) * 8000 / s, knik[1] + math.sin(a2) * 8000 / s)
+        d.add("HV-GEUL", LineString([M, knik, eind]).buffer(110 / s, cap_style="flat", join_style="mitre"),
+              label="Hoofdgeul 220 m, -18,20 m MLWS")
+    else:
+        d.add("HV-GEUL", LineString([M, eind]).buffer(110 / s, cap_style="flat"), label="Hoofdgeul 220 m, -18,20 m MLWS")
     inner = LineString([T, M]).buffer(110 / s, cap_style="flat")
     d.add("HV-GEUL", inner)
-    d.add("HV-GEUL-AS", LineString([T, eind]))
+    d.add("HV-GEUL-AS", LineString([T, M] + ([knik] if knik else []) + [eind]))
     circle = Point(T).buffer(360 / s, 128)
     d.add("HV-DRAAIKOM", circle, label="Vrije draaikom D 720 m")
-    d.add("HV-SLEEPBOOT", Point(tug).buffer(60 / s), label="Sleepbootkoppelpunt")
+    if not so:
+        d.add("HV-SLEEPBOOT", Point(tug).buffer(60 / s), label="Sleepbootkoppelpunt")
 
     # --- terminalvingers en bekkens --------------------------------------------------------------
     Y_MB0, Y_MB1 = 256.0, 293.0          # hoofdbekken (noordkade / koppen van de vingers)
@@ -504,48 +332,67 @@ def build_do_render(coast=None):
     lng_route = LineString([T, lng_berth]).buffer(150 / s, cap_style="round")
     d.add("HV-BAGGER", unary_union([inner, circle, toegang, lng_route]), label="Voorhaven + toegang", tag="voorhaven")
     d.add("HV-BAGGER", box(625, Y_MB0, 800, Y_MB1), label="Hoofdbekken", tag="bekken")
-    d.add("HV-BAGGER", box(380, Y_MB0, 625, Y_MB1), label="Reserve hoofdbekken west (fase 4)", phase=4, style="dashed",
-          tag="reserve_water")
-    ys = [Y_MB1, 368.5, 404.25, Y_BOT]
-    for ph in (1, 2, 3):
-        part = slip1.intersection(box(0, ys[ph - 1], 2000, ys[ph]))
-        d.add("HV-BAGGER", part, label="Insteekbekken containers" if ph == 1 else f"Insteek F{ph}", phase=ph, tag="bekken")
-    d.add("HV-BAGGER", slip2, label="Reserve insteek (fase 4)", phase=4, style="dashed", tag="reserve_water")
+    if so:  # SO: alle bekkens in fase 1 baggeren
+        d.add("HV-BAGGER", box(380, Y_MB0, 625, Y_MB1), label="Hoofdbekken west", tag="bekken")
+        d.add("HV-BAGGER", slip1, label="Insteekbekken containers", tag="bekken")
+        d.add("HV-BAGGER", slip2, label="Insteekbekken 2", tag="bekken")
+    else:
+        d.add("HV-BAGGER", box(380, Y_MB0, 625, Y_MB1), label="Reserve hoofdbekken west (fase 4)", phase=4, style="dashed",
+              tag="reserve_water")
+        ys = [Y_MB1, 368.5, 404.25, Y_BOT]
+        for ph in (1, 2, 3):
+            part = slip1.intersection(box(0, ys[ph - 1], 2000, ys[ph]))
+            d.add("HV-BAGGER", part, label="Insteekbekken containers" if ph == 1 else f"Insteek F{ph}", phase=ph, tag="bekken")
+        d.add("HV-BAGGER", slip2, label="Reserve insteek (fase 4)", phase=4, style="dashed", tag="reserve_water")
 
     # containervinger (6): kade aan de insteekzijde, fasen van noord naar zuid
     yc = [Y_TOP, 368.5, 404.25, Y_BOT]
     lab = {1: "F1 2025: 2 lp, 800 m, 72 ha", 2: "F2 2035: +1 lp, 108 ha", 3: "F3 2045: +1 lp, 144 ha"}
-    for ph in (1, 2, 3):
-        d.add("HV-CONTAINER", f6.intersection(box(0, yc[ph - 1], 2000, yc[ph])), label=lab[ph], phase=ph, tag="cyard")
+    order = (3, 2, 1) if so else (1, 2, 3)  # SO: fase 1 aan het zuideinde
+    if so:
+        yc = [Y_TOP, 332.75, 368.5, Y_BOT]
+    for k, ph in enumerate(order):
+        d.add("HV-CONTAINER", f6.intersection(box(0, yc[k], 2000, yc[k + 1])), label=lab[ph], phase=ph, tag="cyard")
     k0, k1 = (692.0, Y_TOP), (_slant(692, Y_TOP, Y_BOT), Y_BOT)
     seg = [(k0[0] + (k1[0] - k0[0]) * t / 4, k0[1] + (k1[1] - k0[1]) * t / 4) for t in range(5)]
-    for i, ph in enumerate([1, 1, 2, 3]):
+    for i, ph in enumerate([3, 2, 1, 1] if so else [1, 1, 2, 3]):
         d.add("HV-KADE", LineString([seg[i], seg[i + 1]]), phase=ph, tag="ckade")
         _ship_along(seg[i], seg[i + 1], -1, BEAM, f"C{i + 1}", d, phase=ph, length_m=LOA)
-    for ph, yy in ((2, 368.5), (3, 404.25)):
+    for ph, yy in (() if so else ((2, 368.5), (3, 404.25))):
         d.add("HV-FASEGRENS", LineString([(_slant(692, Y_TOP, yy), yy), (_slant(792, Y_TOP, yy), yy)]),
               label="F1 | F2" if ph == 2 else "F2 | F3")
     d.add("HV-KADE", LineString([(792, Y_TOP), (_slant(792, Y_TOP, Y_BOT), Y_BOT)]), style="dashed", phase=4,
           label="talud oostzijde (reserve steigers 13)")
 
     # tweede vinger (7/8): RoRo in de noordoosthoek, rest reserve
-    roro = _para(580, 630, Y_MB1, 353)
-    d.add("HV-RORO", roro, label="RoRo 30 ha", tag="roro_plot")
-    r0, r1 = (_slant(630, Y_MB1, 310), 310.0), (_slant(630, Y_MB1, 336.7), 336.7)
-    d.add("HV-KADE", LineString([r0, r1]), label="RoRo-kade 300 m")
-    _ship_along(r0, r1, 1, 37.7, "RoRo-schip", d, length_m=219.9)
-    d.add("HV-RESERVE", f78.difference(roro), label="Reserve stukgoed/supply (7/8)")
+    if so:  # SO: graan en RoRo samen aan de noordkade, vinger 7/8 geheel reserve
+        d.add("HV-RESERVE", f78, label="Reserve (7/8)")
+        d.add("HV-GRAAN", Polygon([(705, 199), (835, 199), (840, 212), (832, 240), (815, Y_MB0), (705, Y_MB0)]),
+              label="Graan + RoRo gedeeld perceel", tag="graan_plot")
+        d.add("HV-KADE", LineString([(716, Y_MB0), (746, Y_MB0)]), label="Graankade 300 m")
+        _ship_along((746, Y_MB0), (716, Y_MB0), 1, 32.26, "Graanschip", d, length_m=229)
+        r0, r1 = (780.0, Y_MB0), (810.0, Y_MB0)
+        d.add("HV-KADE", LineString([r0, r1]), label="RoRo-kade 300 m")
+        _ship_along(r1, r0, 1, 37.7, "RoRo-schip", d, length_m=219.9)
+        d.add("HV-WEG", LineString([(763, 190), (763, Y_MB0 - 2)]), label="Weg door perceel")
+    else:
+        roro = _para(580, 630, Y_MB1, 353)
+        d.add("HV-RORO", roro, label="RoRo 30 ha", tag="roro_plot")
+        r0, r1 = (_slant(630, Y_MB1, 310), 310.0), (_slant(630, Y_MB1, 336.7), 336.7)
+        d.add("HV-KADE", LineString([r0, r1]), label="RoRo-kade 300 m")
+        _ship_along(r0, r1, 1, 37.7, "RoRo-schip", d, length_m=219.9)
+        d.add("HV-RESERVE", f78.difference(roro), label="Reserve stukgoed/supply (7/8)")
 
-    # noordkade: graan (10), havendiensten (17), werf/industrie reserve (3)
-    graan = box(705, 199, 758, Y_MB0)
-    d.add("HV-GRAAN", graan, label="Graan 30 ha", tag="graan_plot")
-    d.add("HV-GRAAN", box(715, 205, 745, 230))  # silo's
-    d.add("HV-KADE", LineString([(716, Y_MB0), (746, Y_MB0)]), label="Graankade 300 m")
-    _ship_along((746, Y_MB0), (716, Y_MB0), 1, 32.26, "Graanschip", d, length_m=229)
-    d.add("HV-LEIDING", LineString([(731, 230), (731, Y_MB0)]), style="dashed")
-    hd = Polygon([(758, 199), (835, 199), (840, 212), (832, 240), (815, Y_MB0), (758, Y_MB0)])
-    d.add("HV-HAVENDIENST", hd, label="Havendiensten/sleepboten (17)", tag="havendienst")
-    d.add("HV-KADE", LineString([(770, Y_MB0), (810, Y_MB0)]))
+        # noordkade: graan (10), havendiensten (17), werf/industrie reserve (3)
+        graan = box(705, 199, 758, Y_MB0)
+        d.add("HV-GRAAN", graan, label="Graan 30 ha", tag="graan_plot")
+        d.add("HV-GRAAN", box(715, 205, 745, 230))  # silo's
+        d.add("HV-KADE", LineString([(716, Y_MB0), (746, Y_MB0)]), label="Graankade 300 m")
+        _ship_along((746, Y_MB0), (716, Y_MB0), 1, 32.26, "Graanschip", d, length_m=229)
+        d.add("HV-LEIDING", LineString([(731, 230), (731, Y_MB0)]), style="dashed")
+        hd = Polygon([(758, 199), (835, 199), (840, 212), (832, 240), (815, Y_MB0), (758, Y_MB0)])
+        d.add("HV-HAVENDIENST", hd, label="Havendiensten/sleepboten (17)", tag="havendienst")
+        d.add("HV-KADE", LineString([(770, Y_MB0), (810, Y_MB0)]))
     d.add("HV-RESERVE", box(380, 199, 705, Y_MB0), label="Reserve werf/industrie (3)")
     d.add("HV-RESERVE", Polygon([(285, 179), (330, 124), (362, 113), (580, 113), (594, 131), (571, 176)]),
           label="Reserve opslagterrein (2)")
@@ -557,11 +404,12 @@ def build_do_render(coast=None):
     Y_T0, Y_T1 = 450.0, 486.0
     lz = box(612, Y_T0, 700, Y_T1)
     d.add("HV-LNG", lz, label="LNG-tanks + hervergassing", tag="lng_zone")
-    tanks = [Point(626 + 15 * k, 474).buffer(45 / s, 64) for k in range(3)]
+    tanks = [Point(626 + 15 * k, 456 if so else 474).buffer(45 / s, 64) for k in range(3)]
     for t in tanks:
         d.add("HV-LNG", t, tag="tank")
-    d.add("HV-LNG", Point(671, 474).buffer(45 / s, 64), style="dashed")  # optie 4e tank (N-1)
-    d.add("HV-LNG", box(622, 454, 690, 461))  # hervergassing
+    if not so:
+        d.add("HV-LNG", Point(671, 474).buffer(45 / s, 64), style="dashed")  # optie 4e tank (N-1)
+        d.add("HV-LNG", box(622, 454, 690, 461))  # hervergassing
     cz = box(470, Y_T0, 600, Y_T1)
     d.add("HV-CENTRALE", cz, label="Centrale + utilities", tag="centrale")
     d.add("HV-RESERVE", box(405, Y_T0, 465, Y_T1), label="Reserve tanks (9)")
@@ -600,7 +448,7 @@ def build_do_render(coast=None):
 
     # vrije breedtes
     w_slip1 = (_slant(692, Y_TOP, 350) - _slant(630, Y_MB1, 350)) * s * math.cos(math.atan(0.5))
-    d.notes = dict(M=M, T=T, hn=hn, hs=hs, stop=L * s, knik=None, tug=tug, eind=eind,
+    d.notes = dict(M=M, T=T, hn=hn, hs=hs, stop=L * s, knik=knik, tug=tug, eind=eind,
                    bwn=bwn, bws=bws, circle=circle, lng_env=lng_env, tanks=tanks,
                    vrije_breedte=w_slip1 - (5 + BEAM) - (5 + 37.7), breedte_insteek=w_slip1,
                    breedte_hoofdbekken=(Y_MB1 - Y_MB0) * s)
@@ -610,27 +458,35 @@ def build_do_render(coast=None):
     d.dim((692, Y_TOP), (792, Y_TOP), 90, f"{nl0(100 * s * math.cos(math.atan(0.5)))} m")
     d.dim((716, Y_MB0), (746, Y_MB0), -90, "300 m")
     d.dim((705, 199), (758, 199), 70, "530 m")
-    d.dim(r0, r1, -110, "300 m")
+    d.dim(r0, r1, -110 if not so else 90, "300 m")
     d.dim((600, Y_MB0), (600, Y_MB1), 120, f"{nl0((Y_MB1 - Y_MB0) * s)} m")
     d.dim((_slant(630, Y_MB1, 330), 330), (_slant(692, Y_TOP, 330), 330), -60, f"{nl0(w_slip1)} m")
     d.dim(b0, b1, -70, "400 m")
-    d.dim(tug, M, 260, "1.500 m")
+    if not so:
+        d.dim(tug, M, 260, "1.500 m")
     cw = 110 / s
     pm = (M[0] + dv[0] * 50, M[1] + dv[1] * 50)
     d.dim((pm[0] - nv[0] * cw, pm[1] - nv[1] * cw), (pm[0] + nv[0] * cw, pm[1] + nv[1] * cw), 200, "220 m")
     hn_in = (hn[0] + nv[0] * bw, hn[1] + nv[1] * bw)
     hs_in = (hs[0] - nv[0] * bw, hs[1] - nv[1] * bw)
-    d.dim(hn_in, hs_in, 300, "350 m vrij")
+    if so:
+        d.dim(hn, hs, 300, "350 m hart-hart")
+    else:
+        d.dim(hn_in, hs_in, 300, "350 m vrij")
     d.dim(M, T, -380, f"{nl0(L * s)} m = {L * s / LOA:.1f} LOA".replace(".", ","))
 
     for k, nm, p in [("A1", "Referentiepunt kust (render 812,5 / 275)", RENDER_ANCHOR[0]),
                      ("A2", "Middelpunt vrije draaikom", T), ("A3", "Midden havenmond", M),
-                     ("A4", "Sleepbootkoppelpunt", tug), ("A5", "Eindpunt geul (voorlopig)", eind),
+                     ("A4", "Geulknik" if so else "Sleepbootkoppelpunt", knik if so else tug),
+                     ("A5", "Eindpunt geul (voorlopig)", eind),
                      ("A6", "Wortel noordelijke golfbreker", (835, 186)), ("A7", "Wortel zuidelijke golfbreker", (690, 482)),
                      ("A8", "Containerkade noordeinde (F1)", seg[0]), ("A9", "Containerkade zuideinde (F3)", seg[4]),
                      ("A10", "LNG-steigerkop", j1), ("A11", "Graankade midden", (731, Y_MB0)),
                      ("A12", "RoRo-kade midden", ((r0[0] + r1[0]) / 2, (r0[1] + r1[1]) / 2))]:
         d.anchor_pt(k, nm, *p)
+    # bespreekpunten SO (render-px, straal in m)
+    d.notes["markup_pos"] = [(M[0], M[1], 300), (T[0], T[1], 470), (1040, 390, 330), (650, 452, 380), (770, 225, 420),
+                             (700, 425, 420)]
     d.center = d.P(590, 335)
     d.scale = 15000
     return d

@@ -244,7 +244,7 @@ def title_block(bg, d, blad, naam, schaal, extra=None):
         ("Module", "Atelier De Haven A | NHL Stenden Civiele Techniek"),
         ("Bladnaam", naam),
         ("Status", "SCHETSONTWERP (SO)" if d.code == "SO" else "DEFINITIEF ONTWERP (DO)"),
-        ("Blad / versie", f"{blad}  |  versie {'1.0' if d.code == 'SO' else '2.0'}  |  {DATE}"),
+        ("Blad / versie", f"{blad}  |  versie {d.version}  |  {DATE}"),
         ("Schaal", f"{schaal} op A1 (841 x 594 mm)"),
         ("Stelsel", "SIRGAS 2000 / UTM zone 24S  EPSG:31984  eenheid m"),
         ("Hoogtedatum", "diepten in m t.o.v. MLWS, voorlopig; MLWS-DHN te verifiëren"),
@@ -504,17 +504,16 @@ def sheet_tables(pdf, d, geo):
 
 def so_markup(d):
     m = d.m
-    n = d.notes
-    M, T = n["M"], n["T"]
-    return [
-        (M[0], M[1], 300, f"Havenmond {nl(m['havenmond_vrij_m'])} m vrij tussen dammen (350 m hart-hart gemeten)"),
-        (T[0], T[1], 470, f"Draaikom overlapt ligplaats C1 en containerkade ({nl(m['draaikom_overlap_schepen_m2'] / 1e4, 1)} ha); "
-                          f"stopweg {nl(m['stopweg_mond_draaikom_m'])} m < 5 LOA"),
-        (2350, -450, 280, "Geen sleepbootkoppelpunt; geul knikt 15 gr op 2,2 km buiten de mond"),
-        (-500, -1200, 380, f"LNG-tanks op {nl(m['lng_tank_tot_containerterrein_m'])} m van het containerterrein"),
-        (-1150, 1450, 480, "Graan + RoRo op één perceel; weg kruist het terrein"),
-        (-650, -650, 430, "Containers F1 aan het zuideinde: lange vaarweg langs lege kade; alle bekkens in F1"),
+    pos = d.notes["markup_pos"]
+    texts = [
+        f"Havenmond {nl(m['havenmond_vrij_m'])} m vrij tussen dammen (350 m hart-hart gemeten)",
+        f"Draaikom overlapt de containervinger ({nl(m['draaikom_overlap_land_m2'] / 1e4, 1)} ha)",
+        "Geen sleepbootkoppelpunt; geul knikt 15 gr op 2,2 km buiten de mond",
+        f"LNG-tanks op {nl(m['lng_tank_tot_containerterrein_m'])} m van het containerterrein",
+        "Graan + RoRo op één perceel aan de noordkade; weg kruist het terrein",
+        "Containers F1 aan het zuideinde; alle bekkens in F1 baggeren",
     ]
+    return [(x, y, r, t) for (x, y, r), t in zip(pos, texts)]
 
 
 def masterplan_inset(bg, y_bottom, width=None, render=False):

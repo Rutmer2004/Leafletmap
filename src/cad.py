@@ -133,7 +133,7 @@ def _layout(doc, d):
     y = 570
     title = "SCHETSONTWERP (SO)" if d.code == "SO" else "DEFINITIEF ONTWERP (DO)"
     for t, h in [("Havenontwerp Groep 1 - Porto Central, Presidente Kennedy (ES)", 6), (title, 8),
-                 (f"Blad {d.code}-02  Havenindeling  |  versie {'1.0' if d.code == 'SO' else '2.0'}  |  22-10-2026", 4),
+                 (f"Blad {d.code}-02  Havenindeling  |  versie {d.version}  |  22-10-2026", 4),
                  (f"Schaal 1:{d.scale:,} (A1)  |".replace(",", ".") + "  noordpijl = grid-noord (verschil met ware noord 0,70 gr)", 3.5),
                  ("Stelsel: SIRGAS 2000 / UTM zone 24S, EPSG:31984, eenheid m", 3.5),
                  ("Hoogte/diepte: m t.o.v. MLWS (voorlopig; koppeling MLWS-DHN nog te verifiëren)", 3.5),
