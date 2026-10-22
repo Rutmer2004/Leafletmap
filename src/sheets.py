@@ -117,10 +117,11 @@ def poly_xy(g):
     return out
 
 
-def draw_design(ax, d, labels=True, phase=None, fs=6.5, anchors=True, dims=True):
+def draw_design(ax, d, labels=True, phase=None, fs=6.5, anchors=True, dims=True, detail=False):
     order = ["HV-VOORHAVEN", "HV-BAGGER", "HV-RESERVE", "HV-CONTAINER", "HV-GRAAN", "HV-RORO", "HV-HAVENDIENST", "HV-CENTRALE",
-             "HV-LNG", "HV-GEUL", "HV-GOLFBREKER", "HV-SCHIP", "HV-DRAAIKOM", "HV-KADE", "HV-WEG", "HV-SPOOR",
-             "HV-LEIDING", "HV-FASEGRENS", "HV-GEUL-AS", "HV-SLEEPBOOT", "HV-ANKERPUNT"]
+             "HV-LNG", "HV-D-VERKEER", "HV-D-PARKEER", "HV-D-STACK", "HV-D-REEFER", "HV-D-LEEG", "HV-D-OPSLAG",
+             "HV-D-INSTALLATIE", "HV-D-GEBOUW", "HV-GEUL", "HV-GOLFBREKER", "HV-SCHIP", "HV-DRAAIKOM", "HV-KADE",
+             "HV-D-KRAAN", "HV-WEG", "HV-SPOOR", "HV-LEIDING", "HV-FASEGRENS", "HV-GEUL-AS", "HV-SLEEPBOOT", "HV-ANKERPUNT"]
     ls_map = {"dashed": (0, (5, 3)), "dotted": (0, (1, 2)), "dashdot": (0, (8, 3, 2, 3))}
     for z, lay in enumerate(order):
         aci, col, fill, _ = H.LAYERS[lay]
@@ -161,7 +162,10 @@ def draw_design(ax, d, labels=True, phase=None, fs=6.5, anchors=True, dims=True)
                         ax.add_patch(MPoly(xy, closed=True, fill=False, ec=col, lw=0.9, ls=lsty, zorder=2 + z))
             elif g.geom_type == "LineString":
                 xy = np.array(g.coords)
-                lw = {"HV-KADE": 2.2, "HV-WEG": 1.8, "HV-SPOOR": 1.2, "HV-FASEGRENS": 1.4, "HV-GEUL-AS": 0.6}.get(lay, 1.0)
+                lw = {"HV-KADE": 2.2, "HV-WEG": 1.8, "HV-SPOOR": 1.2, "HV-FASEGRENS": 1.4, "HV-GEUL-AS": 0.6,
+                      "HV-D-KRAAN": 0.7, "HV-D-INSTALLATIE": 0.9}.get(lay, 1.0)
+                if lay == "HV-SPOOR" and detail is False and it.get("dlabel"):
+                    lw = 0.6
                 if lay == "HV-SPOOR":
                     ax.plot(xy[:, 0], xy[:, 1], color="white", lw=2.4, zorder=2 + z, alpha=0.0 if future else 1)
                     ax.plot(xy[:, 0], xy[:, 1], color="black", lw=1.2, ls=(0, (3, 3)), zorder=2 + z, alpha=0.4 if future else 1)
@@ -172,6 +176,10 @@ def draw_design(ax, d, labels=True, phase=None, fs=6.5, anchors=True, dims=True)
                     lsty = (0, (6, 2))
                 ax.plot(xy[:, 0], xy[:, 1], color=col, lw=lw, ls=(0, (4, 3)) if future else lsty, zorder=2 + z,
                         alpha=0.6 if future else 1)
+            if detail and it.get("dlabel") and not future:
+                c = g.representative_point() if g.geom_type != "LineString" else g.interpolate(0.5, normalized=True)
+                ax.text(c.x, c.y, it["dlabel"], fontsize=fs * 0.9, ha="center", va="center", color="white",
+                        path_effects=HALO, zorder=55, clip_on=True)
             if labels and it["label"] and lay not in ("HV-GEUL-AS",) and not future:
                 c = g.representative_point() if g.geom_type != "LineString" else g.interpolate(0.5, normalized=True)
                 if lay == "HV-SLEEPBOOT":
@@ -381,6 +389,56 @@ def sheet_layout(pdf, d, phase_note=None, markup=None, blad="02", naam="Havenind
     plt.close(f)
 
 
+def sheet_detail(pdf, d, blad, naam, center, scale, lines):
+    f, bg = fig_new()
+    ax = map_axes(f, MAP, center, scale)
+    grid(ax, 500)
+    draw_design(ax, d, fs=6.6, anchors=False, dims=False, detail=True)
+    north_scale(ax, scale, 500)
+    y = legend(bg, PH - 14, d, fs=6.2)
+    text_block(bg, y - 3, lines, fs=6.6, lh=4.0)
+    title_block(bg, d, f"{d.code}-{blad}", naam, f"1:{nl(scale)}")
+    pdf.savefig(f)
+    plt.close(f)
+
+
+def detail_lines(d, blad):
+    t = d.info.get("detail", {})
+    if blad == "06":
+        sl = t["teu_grondslots_per_fase"]
+        return ["**Kengetallen containerterminal (rekenboek)",
+                f"Kade 1.600 m, 4 ligplaatsen van 400 m, apron 60 m",
+                f"STS-kranen F1/F2/F3: {t['sts_per_fase'][1]} / {t['sts_per_fase'][2]} / {t['sts_per_fase'][3]} (6 / 12 / 20)",
+                f"Stackzone bruto {nl(t['stack_bruto_m2'] / 1e4, 1)} ha (rekenboek netto 113,2 ha)",
+                f"TEU-grondslots (28 m2/slot): {nl(sl[1])} / {nl(sl[2])} / {nl(sl[3])}",
+                "   benodigd 12.133 / 20.222 / 40.444",
+                "RTG-blokken 24 m breed, rijpaden 12 m, blokken 300 m",
+                "Reefer- en legecontainervakken aan de landzijde",
+                f"Railterminal 4 sporen x {nl(t['railterminal_m'])} m met RMG",
+                "Gate met 12 rijstroken, douane/scan, truckparking",
+                "Kantoor en werkplaats aan de noordwestzijde"]
+    if blad == "07":
+        return ["**Kengetallen graan, RoRo en havendienst",
+                f"Graan: 8 silo's D 30 m x 40 m = {nl(t['graan_silo_m3'])} m3",
+                f"   = {nl(t['graan_silo_ton'])} t bij 0,75 t/m3 (piek 154.100 t)",
+                "   plus vlakke opslag; 2 shiploaders op 300 m kade",
+                "   ontvangst per vrachtauto en per spoor",
+                f"RoRo: parkeervakken {nl(t['roro_parkeer_m2'] / 1e4, 1)} ha = ca. {nl(t['roro_auto_capaciteit'])} auto's",
+                "   (piekvoorraad 7.479 auto's); ramp, inspectie, rijcircuit",
+                "Havendienst: havenkantoor/VTS, VTS-toren, loodsen,",
+                "   sleepdienst (3 sleepboten), brandweer"]
+    return ["**Kengetallen LNG en centrale",
+            "LNG: 3 x 180.000 m3 full containment in tankput, ruimte 4e tank",
+            "   hervergassing 4 x 33%, BOG-compressor, meetstation,",
+            "   controlekamer, fakkel (afstanden volgen uit de QRA)",
+            "   steiger: 3 laadarmen, 4 breasting- en 4 meerdolphins,",
+            "   pijpleidingbrug naar de tanks",
+            f"Centrale: 4 STEG-eenheden ca. 565 MW = {nl(t['centrale_eenheden_mw'])} MW",
+            "   (rekenvoorbeeld 2.256 MW, vermogen nog vast te stellen)",
+            "   hoogspanningsstation, gasontvangst, koelwaterpompen,",
+            "   waterbehandeling, kantoor"]
+
+
 def sheet_phases(pdf, d):
     f, bg = fig_new()
     center = d.center or H.P(-400, 50)
@@ -549,6 +607,8 @@ def make_pdf(d, path, coast, geo):
             sheet_tables(pdf, d, geo)
             if d.info.get("render_affine"):
                 sheet_overlay(pdf, d)
+            for blad, naam, center, scale in d.detail_views:
+                sheet_detail(pdf, d, blad, naam, center, scale, detail_lines(d, blad))
         info = pdf.infodict()
         info["Title"] = f"Haven_{d.code} - Havenontwerp Groep 1"
         info["Author"] = "Groep 1 - Atelier De Haven A"

@@ -91,6 +91,16 @@ def write_dxf(d, path, coast):
             msp.add_text(it["label"], height=TXT, rotation=ang, dxfattribs={"layer": "HV-TEKST"}) \
                 .set_placement((c.x, c.y), align=TextEntityAlignment.MIDDLE_CENTER if g.geom_type != "Point" else TextEntityAlignment.BOTTOM_LEFT)
 
+    # detailteksten (DO-06 t/m DO-08)
+    if any(it.get("dlabel") for it in d.items):
+        doc.layers.add("HV-D-TEKST", color=7)
+    for it in d.items:
+        if it.get("dlabel"):
+            g = it["geom"]
+            c = g.representative_point() if g.geom_type != "LineString" else g.interpolate(0.5, normalized=True)
+            msp.add_text(it["dlabel"], height=8, dxfattribs={"layer": "HV-D-TEKST"}) \
+                .set_placement((c.x, c.y), align=TextEntityAlignment.MIDDLE_CENTER)
+
     # maatvoering als echte DIMENSION-entiteiten
     ds = doc.dimstyles.new("HV_10000")
     ds.dxf.dimtxt = 25
@@ -118,23 +128,27 @@ def write_dxf(d, path, coast):
     doc.layers.get("HV-RASTER").off()
 
     _layout(doc, d)
+    for blad, naam, center, scale in d.detail_views:
+        _layout(doc, d, name=f"{d.code}-{blad} {naam} 1-{scale}".replace(",", ""), center=center, scale=scale,
+                blad=f"{d.code}-{blad}", naam=naam)
     doc.set_modelspace_vport(height=7000, center=H.P(-200, -100))
     doc.saveas(path)
 
 
-def _layout(doc, d):
-    """Papieren A1-blad 1:10.000 met viewport, kader, titelblok en legenda."""
-    lay = doc.layouts.new(f"{d.code}-02 A1 1-{d.scale}")
+def _layout(doc, d, name=None, center=None, scale=None, blad=None, naam="Havenindeling"):
+    """Papieren A1-blad met viewport, kader, titelblok en legenda."""
+    scale = scale or d.scale
+    lay = doc.layouts.new(name or f"{d.code}-02 A1 1-{scale}")
     lay.page_setup(size=(841, 594), margins=(0, 0, 0, 0), units="mm")
-    cx, cy = d.center or H.P(-250, -150)
-    lay.add_viewport(center=(325, 297), size=(620, 574), view_center_point=(cx, cy), view_height=574 * d.scale / 1000)
+    cx, cy = center or d.center or H.P(-250, -150)
+    lay.add_viewport(center=(325, 297), size=(620, 574), view_center_point=(cx, cy), view_height=574 * scale / 1000)
     lay.add_lwpolyline([(10, 10), (831, 10), (831, 584), (10, 584)], close=True)
     lay.add_lwpolyline([(640, 10), (640, 584)])
     y = 570
     title = "SCHETSONTWERP (SO)" if d.code == "SO" else "DEFINITIEF ONTWERP (DO)"
     for t, h in [("Havenontwerp Groep 1 - Porto Central, Presidente Kennedy (ES)", 6), (title, 8),
-                 (f"Blad {d.code}-02  Havenindeling  |  versie {d.version}  |  22-10-2026", 4),
-                 (f"Schaal 1:{d.scale:,} (A1)  |".replace(",", ".") + "  noordpijl = grid-noord (verschil met ware noord 0,70 gr)", 3.5),
+                 (f"Blad {blad or d.code + '-02'}  {naam}  |  versie {d.version}  |  22-10-2026", 4),
+                 (f"Schaal 1:{scale:,} (A1)  |".replace(",", ".") + "  noordpijl = grid-noord (verschil met ware noord 0,70 gr)", 3.5),
                  ("Stelsel: SIRGAS 2000 / UTM zone 24S, EPSG:31984, eenheid m", 3.5),
                  ("Hoogte/diepte: m t.o.v. MLWS (voorlopig; koppeling MLWS-DHN nog te verifiëren)", 3.5),
                  ("Kaartbron: Copernicus Sentinel-2 L2A, opname 03-07-2026, 10 m", 3.5),
@@ -161,4 +175,4 @@ def _layout(doc, d):
     for i in range(5):
         lay.add_lwpolyline([(30 + i * 20, 25), (50 + i * 20, 25), (50 + i * 20, 29), (30 + i * 20, 29)], close=True)
     lay.add_text("0", height=3).set_placement((30, 31), align=TextEntityAlignment.BOTTOM_CENTER)
-    lay.add_text(f"{d.scale // 10:,} m".replace(",", "."), height=3).set_placement((130, 31), align=TextEntityAlignment.BOTTOM_CENTER)
+    lay.add_text(f"{scale // 10:,} m".replace(",", "."), height=3).set_placement((130, 31), align=TextEntityAlignment.BOTTOM_CENTER)

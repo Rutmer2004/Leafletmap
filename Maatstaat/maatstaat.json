@@ -348,7 +348,28 @@
      297135.0,
      7650000.0
     ]
-   ]
+   ],
+   "detail": {
+    "sts_per_fase": {
+     "1": 6,
+     "2": 12,
+     "3": 20
+    },
+    "stack_bruto_m2": 1135631.9999999993,
+    "stack_blokken_m2": 693120.0000000006,
+    "teu_grondslots": 40558.28571428569,
+    "teu_grondslots_per_fase": {
+     "1": 20284.002316614966,
+     "2": 30426.00347492244,
+     "3": 40558.28571428568
+    },
+    "railterminal_m": 1300.0,
+    "graan_silo_m3": 226194.6710584651,
+    "graan_silo_ton": 169646.00329384883,
+    "roro_parkeer_m2": 121224.2477680462,
+    "roro_auto_capaciteit": 9697.939821443697,
+    "centrale_eenheden_mw": 2260
+   }
   }
  },
  "georef": {

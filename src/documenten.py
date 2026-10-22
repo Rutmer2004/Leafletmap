@@ -18,6 +18,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 D = json.load(open(os.path.join(ROOT, "Maatstaat", "maatstaat.json")))
 SO, DO, GEO = D["SO"]["m"], D["DO"]["m"], D["georef"]
 ANK = D["DO"]["anker"]
+DT = D["DO"].get("info", {}).get("detail", {})
 
 
 def nl(x, d=0):
@@ -117,6 +118,12 @@ MAATSTAAT = [
     ("LNG-tanks tot containerterrein", "m", round(DO["lng_tank_tot_containerterrein_m"]), None, "", "QRA volgt"),
     ("LNG-zone (tanks + hervergassing)", "ha", round(DO["lng_zone_ha"], 1), None, "Invoer D51-D52", "3 tanks + optie 4e"),
     ("Centrale + utilities (reservering)", "ha", round(DO["centrale_ha"], 1), None, "geen vast oppervlak", "reservering"),
+    ("STS-kranen F1 / F2 / F3", "st", f"{DT['sts_per_fase']['1']} / {DT['sts_per_fase']['2']} / {DT['sts_per_fase']['3']}", "6 / 12 / 20", "Containers D19-F19", "gelijk"),
+    ("TEU-grondslots stackzone F3 (28 m2/slot)", "slots", round(DT["teu_grondslots"]), 40444, "Containers F25", "voldoet"),
+    ("Stackzone bruto", "ha", round(DT["stack_bruto_m2"] / 1e4, 1), 113.2, "Containers F26", "voldoet"),
+    ("Graansilo's 8 x D 30 m x 40 m", "t", round(DT["graan_silo_ton"]), 154100, "Overige terminals F9", "voldoet"),
+    ("RoRo-parkeercapaciteit", "auto's", round(DT["roro_auto_capaciteit"]), 7479, "Overige terminals F15", "voldoet"),
+    ("Centrale STEG-eenheden", "MW", DT["centrale_eenheden_mw"], 2256, "Overige terminals F30", "rekenvoorbeeld"),
     ("Havendiensten / sleepboten", "ha", round(DO["havendienst_ha"], 1), None, "", "reservering"),
     ("Vrije breedte hoofdbekken met graanschip aan de kade", "m", round(DO["vrije_breedte_binnenbekken_m"]), 220, "", "voldoet"),
     ("Binnenbekken gebaggerd fase 1", "m2", round(DO["binnenbekken_m2"]["1"]), None, "", ""),
@@ -320,7 +327,7 @@ def write_docx(path, figs):
         ("Referentie/", "Uitsnede Porto Central-masterplan 2016 p. 9 (vormreferentie)"),
         ("CAD/Ondergrond/", "Sentinel-2 luchtfoto (JPG + world file .jgw + .prj), kustlijnen; relatief pad naast de DXF"),
         ("PDF/Haven_SO.pdf", "SO-01 overzicht 1:50.000, SO-02 havenindeling 1:12.500, SO-03 bespreekpunten"),
-        ("PDF/Haven_DO.pdf", "DO-01 overzicht, DO-02 havenplan 1:12.500, DO-03 fasering 1:25.000, DO-04 maatstaat/georeferentie, DO-05 overtrek render"),
+        ("PDF/Haven_DO.pdf", "DO-01 overzicht, DO-02 havenplan 1:12.500, DO-03 fasering 1:25.000, DO-04 maatstaat/georeferentie, DO-05 overtrek render, DO-06 t/m DO-08 terminaldetails"),
         ("Maatstaat/Maatstaat_en_coordinaten.xlsx", "Maatstaat, ankerpunten E/N, georeferentie, kustcontrole, besluitenlijst"),
         ("Onderbouwing/Rekenboek_herontwerp_bijgewerkt.xlsx", "Rekenboek met gemeten tekenmaten teruggevoerd (Nautiek, Grondwerk, Invoer, Keuzes, Tekening_DO)"),
         ("webkaart/index.html", "Interactieve kaart (Leaflet) met SO en DO op luchtfoto"),
@@ -422,6 +429,31 @@ def write_docx(path, figs):
     if "DO-05" in figs:
         doc.add_picture(figs["DO-05"], width=Cm(16.5))
         doc.add_paragraph("Figuur 4 Overtrek: Porto Central-render op de luchtfoto met het DO (DO-05).").alignment = WD_ALIGN_PARAGRAPH.CENTER
+    h("6.4 Uitwerking van de terminals (DO-06 t/m DO-08)", 2)
+    p("De terminals zijn uitgewerkt tot op het niveau van stackblokken, kranen, silo's, parkeervakken, tanks en installaties. "
+      "De kengetallen zijn gecontroleerd tegen het rekenboek.")
+    table(["Terminal", "Uitwerking", "Controle tegen rekenboek"], [
+        ("Containers (DO-06)", "Kade-apron 60 m met kraanbaan (30,5 m); STS-kranen per fase; RTG-blokken 24 m breed met rijpaden van 12 m en "
+         "blokken van 300 m; reefer- en legecontainervakken; railterminal 4 sporen x 1.300 m met RMG; gate met 12 rijstroken, douane/scan, "
+         "truckparking; kantoor en werkplaats",
+         f"STS {DT['sts_per_fase']['1']}/{DT['sts_per_fase']['2']}/{DT['sts_per_fase']['3']} (6/12/20); "
+         f"TEU-grondslots {nl(DT['teu_grondslots_per_fase']['1'])} / {nl(DT['teu_grondslots_per_fase']['2'])} / {nl(DT['teu_grondslots_per_fase']['3'])} "
+         "tegen 12.133 / 20.222 / 40.444 nodig"),
+        ("Graan (DO-07)", "8 silo's D 30 m x 40 m, vlakke opslag, 2 shiploaders op de kade, transportband, ontvangst per vrachtauto en per spoor, "
+         "kantoor/weegbrug", f"{nl(DT['graan_silo_ton'])} t silocapaciteit tegen 154.100 t piekvoorraad"),
+        ("RoRo (DO-07)", "Parkeerstroken binnen het rijcircuit, ramp, inspectie, kantoor",
+         f"ca. {nl(DT['roro_auto_capaciteit'])} auto's tegen 7.479 auto's piekvoorraad"),
+        ("Havendienst (DO-07)", "Havenkantoor/VTS, VTS-toren, loodsen en sleepdienst, brandweer, 3 sleepbootligplaatsen", "-"),
+        ("LNG (DO-08)", "3 full-containment tanks in tankput, plaats 4e tank, hervergassing 4 x 33%, BOG-compressor, meetstation, "
+         "controlekamer, fakkel; steiger met 3 laadarmen, breasting- en meerdolphins, pijpleidingbrug", "540.000 m3; N-1 nog te kiezen; QRA volgt"),
+        ("Centrale (DO-08)", "4 STEG-eenheden, hoogspanningsstation, gasontvangst, koelwaterpompen, waterbehandeling, kantoor",
+         f"{nl(DT['centrale_eenheden_mw'])} MW tegen rekenvoorbeeld 2.256 MW (vermogen nog vast te stellen)"),
+    ], [3, 8.5, 5.5])
+    for key, cap in (("DO-06", "Figuur 6 Containerterminal (DO-06)."), ("DO-07", "Figuur 7 Graan, RoRo en havendienst (DO-07)."),
+                     ("DO-08", "Figuur 8 LNG-terminal en centrale (DO-08).")):
+        if key in figs:
+            doc.add_picture(figs[key], width=Cm(16.5))
+            doc.add_paragraph(cap).alignment = WD_ALIGN_PARAGRAPH.CENTER
     h("6.1 Maatstaat en aansluiting op het rekenboek", 2)
     table(["Onderdeel", "Eenheid", "Gemeten DO", "Rekenboek/eis", "Cel / bron", "Status"], MAATSTAAT, [5, 1.3, 2.2, 2.2, 3.5, 2.6])
     h("6.2 Ontwerpankerpunten", 2)
@@ -477,7 +509,8 @@ def figures(tmp):
     os.makedirs(tmp, exist_ok=True)
     out = {}
     for pdf, page, key in [("Haven_DO.pdf", 1, "DO-01"), ("Haven_DO.pdf", 2, "DO-02"), ("Haven_DO.pdf", 3, "DO-03"), ("Haven_SO.pdf", 3, "SO-03"),
-                           ("Haven_DO.pdf", 5, "DO-05")]:
+                           ("Haven_DO.pdf", 5, "DO-05"), ("Haven_DO.pdf", 6, "DO-06"), ("Haven_DO.pdf", 7, "DO-07"),
+                           ("Haven_DO.pdf", 8, "DO-08")]:
         base = os.path.join(tmp, key)
         subprocess.run(["pdftoppm", "-r", "70", "-jpeg", "-f", str(page), "-l", str(page), "-singlefile",
                         os.path.join(ROOT, "PDF", pdf), base], check=True)

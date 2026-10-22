@@ -14,7 +14,7 @@ Porto Central-masterplan als vormreferentie.
 | `Referentie/` | Porto Central-render (basis DO) en uitsnede masterplan 2016 p. 9 |
 | `CAD/Ondergrond/` | Sentinel-2 luchtfoto 03-07-2026 (JPG + `.jgw` + `.prj`), waterlijn en GSHHS-kust (JSON) |
 | `PDF/Haven_SO.pdf` | SO-01 overzicht 1:40.000 · SO-02 havenindeling 1:10.000 · SO-03 bespreekpunten |
-| `PDF/Haven_DO.pdf` | DO-01 overzicht · DO-02 havenplan 1:15.000 · DO-03 fasering 1:30.000 · DO-04 maatstaat en georeferentie · DO-05 overtrek render op luchtfoto |
+| `PDF/Haven_DO.pdf` | DO-01 overzicht · DO-02 havenplan 1:15.000 · DO-03 fasering 1:30.000 · DO-04 maatstaat en georeferentie · DO-05 overtrek render · DO-06 containerterminal 1:5.000 · DO-07 graan, RoRo, havendienst 1:6.000 · DO-08 LNG en centrale 1:8.000 |
 | `Maatstaat/Maatstaat_en_coordinaten.xlsx` | Maatstaat, ankerpunten (E/N + lat/lon), georeferentie, kustcontrole, besluitenlijst SO→DO |
 | `Onderbouwing/Rekenboek_herontwerp_bijgewerkt.xlsx` | Rekenboek met de gemeten tekenmaten teruggevoerd (Nautiek D31, Grondwerk C6/D21, Invoer, Keuzes K17–K29, tabblad `Tekening_DO`) |
 | `Onderbouwing/Toelichting_SO_DO.docx` | Toelichting: ondergrond, ligging, SO, bespreking en besluitenlijst, DO, open punten, werkwijze in Civil 3D |

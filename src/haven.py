@@ -99,6 +99,15 @@ LAYERS = {
     "HV-MAAT": (7, "#ffffff", None, "Maatvoering"),
     "HV-TEKST": (7, "#ffffff", None, "Tekst"),
     "HV-RASTER": (8, "#ffffff", None, "Coördinatenraster"),
+    "HV-D-VERKEER": (9, "#e9ecef", 0.25, "Detail: apron, rijstroken, stackzone"),
+    "HV-D-STACK": (32, "#8d5a2b", 0.85, "Detail: stackblokken containers (RTG)"),
+    "HV-D-REEFER": (140, "#00b4d8", 0.85, "Detail: reefervakken"),
+    "HV-D-LEEG": (250, "#adb5bd", 0.85, "Detail: lege containers"),
+    "HV-D-KRAAN": (7, "#ffffff", 0.9, "Detail: kranen, kraanbanen, laadarmen"),
+    "HV-D-GEBOUW": (8, "#495057", 0.9, "Detail: gebouwen"),
+    "HV-D-OPSLAG": (51, "#f1faee", 0.85, "Detail: silo's, tanks, opslag"),
+    "HV-D-PARKEER": (112, "#2d6a4f", 0.7, "Detail: parkeervakken"),
+    "HV-D-INSTALLATIE": (211, "#7b2cbf", 0.85, "Detail: installaties en dolphins"),
 }
 
 
@@ -108,6 +117,7 @@ class Design:
         self.tf = tf or to_world  # lokale ontwerpcoördinaten -> EPSG:31984
         self.center = None
         self.version = "1.0"
+        self.detail_views = []
         self.scale = 10000
         self.info = {}
         self.items = []  # dicts: layer, geom (wereld), label, phase, style
@@ -270,7 +280,7 @@ def build_do_render(coast=None, so=False):
     phi, err = fit_render_rotation(coast)
     A = render_affine(phi)
     d = Design("SO" if so else "DO", tf=lambda g: affinity.affine_transform(g, A))
-    d.version = "4.0" if so else "5.1"
+    d.version = "4.0" if so else "6.0"
     d.info = dict(render_schaal_m_per_px=RENDER_S, render_draaiing_graden=phi, render_kustfit_gem_afwijking_m=err,
                   render_affine=A, render_anker=RENDER_ANCHOR)
     s = RENDER_S
@@ -435,6 +445,10 @@ def build_do_render(coast=None, so=False):
     lng_env = Polygon([b0, b1, (b1[0] + nx * o, b1[1] + ny * o), (b0[0] + nx * o, b0[1] + ny * o)])
     d.add("HV-SCHIP", lng_env, tag="lng_env")
 
+    # --- detaillering terminals (alleen DO) ------------------------------------------------------------
+    if not so:
+        add_terminal_details(d, f6, roro, j0, j1, b0, b1, jt)
+
     # --- leidingen, wegen en spoor (ringweg zoals de render) ---------------------------------------------
     d.add("HV-LEIDING", LineString([j0, (878, 474), (742, 481), (700, 474), (690, 468)]), style="dashed")
     d.add("HV-LEIDING", LineString([(622, 458), (600, 458)]), style="dashed")
@@ -502,6 +516,186 @@ def build_do_render(coast=None, so=False):
     d.center = d.P(700, 335)
     d.scale = 12500
     return d
+
+
+# ======================================================================================
+# Detaillering van de terminals (DO-06 t/m DO-08)
+#   Alle maten in meters; de containerterminal is uitgewerkt in een eigen raster langs de kade:
+#   a = langs de kade vanaf de noordkop, b = loodrecht landinwaarts vanaf de kadelijn.
+# ======================================================================================
+DET = {}
+
+
+def add_terminal_details(d, f6, roro, j0, j1, b0, b1, jt):
+    s = RENDER_S
+    det = {}
+
+    # ---------------- containerterminal (vinger 6) ----------------
+    Q0 = (792.0, 297.0)
+    t = (-1 / math.sqrt(5), 2 / math.sqrt(5))     # langs de kade, naar het zuiden
+    n = (-2 / math.sqrt(5), -1 / math.sqrt(5))    # loodrecht landinwaarts
+    QL, DEP = 1604.0, 897.0                       # kadelengte en diepte vinger (m)
+
+    def F(a, b):
+        return (Q0[0] + (a * t[0] + b * n[0]) / s, Q0[1] + (a * t[1] + b * n[1]) / s)
+
+    def Fs(ap, b):  # scheve coördinaat: a' = a - 0,5 b (volgt de noord- en zuidrand van de vinger)
+        return F(ap + 0.5 * b, b)
+
+    def poly(pts, shear=True):
+        return Polygon([Fs(*p) if shear else F(*p) for p in pts])
+
+    def phase_of(g):
+        y = g.centroid.y
+        return 1 if y < 368.5 else (2 if y < 404.25 else 3)
+
+    # apron en kraanbaan
+    d.add("HV-D-VERKEER", poly([(0, 0), (QL, 0), (QL, 60), (0, 60)]), dlabel="kade-apron 60 m")
+    for bb in (3.0, 33.5):
+        d.add("HV-D-KRAAN", LineString([Fs(0, bb), Fs(QL, bb)]), dlabel="kraanbaan (spoorwijdte 30,5 m)" if bb == 3 else None)
+    # STS-kranen: 3/4/5 per schip -> 6/12/20 in operatie (rekenboek Containers r19)
+    nk = {1: 0, 2: 0, 3: 0}
+    for i in range(4):
+        for j in range(5):
+            ph = 1 if (i < 2 and j < 3) else (2 if (i < 3 and j < 4) else 3)
+            a = 400 * i + 60 + 70 * j
+            g = poly([(a - 13.5, -50), (a + 13.5, -50), (a + 13.5, 40), (a - 13.5, 40)], shear=False)
+            d.add("HV-D-KRAAN", g, phase=ph, dlabel=f"STS {sum(nk.values()) + 1}" if j == 0 else None)
+            nk[ph] += 1
+    det["sts_per_fase"] = {1: nk[1], 2: nk[1] + nk[2], 3: nk[1] + nk[2] + nk[3]}
+
+    # stackblokken (RTG): blok 24 m breed, rijpad 12 m, blokken 300 m lang met dwarspaden van 25 m
+    B_START, B_END = 90.0, 798.0
+    blocks, area = [], 0.0
+    b_row = B_START
+    row = 0
+    while b_row + 24 <= B_END + 1e-6:
+        ap = 30.0
+        while ap < QL - 30:
+            ae = min(ap + 300, QL - 30)
+            g = poly([(ap, b_row), (ae, b_row), (ae, b_row + 24), (ap, b_row + 24)]).intersection(f6)
+            kind = "reefer" if (row >= 17 and ap < 340) else ("leeg" if (row >= 17 and ap > 1300) else "stack")
+            ph = phase_of(g)
+            lay = {"stack": "HV-D-STACK", "reefer": "HV-D-REEFER", "leeg": "HV-D-LEEG"}[kind]
+            lab = {"stack": None, "reefer": "reefer", "leeg": "lege containers"}[kind]
+            d.add(lay, g, phase=ph, dlabel=lab if (ap == 30.0 or kind != "stack") and row in (17, 18) else None)
+            blocks.append((g, ph))
+            ap = ae + 25
+        b_row += 36
+        row += 1
+    zone = poly([(0, B_START), (QL, B_START), (QL, B_END), (0, B_END)]).intersection(f6)
+    d.add("HV-D-VERKEER", zone, style="dashed", dlabel=None)
+    det["stack_bruto_m2"] = zone.area * s * s
+    det["stack_blokken_m2"] = sum(g.area for g, _ in blocks) * s * s
+    det["teu_grondslots"] = det["stack_bruto_m2"] / 28.0          # rekenboek Invoer D30: 28 m2 per TEU-grondslot
+    det["teu_grondslots_per_fase"] = {}
+    for ph in (1, 2, 3):
+        zph = zone.intersection(box(0, 0, 2000, [368.5, 404.25, 440.0][ph - 1]))
+        det["teu_grondslots_per_fase"][ph] = zph.area * s * s / 28.0
+
+    # railterminal, wisselstrook vrachtauto's, randweg
+    for bb in (808, 816, 824, 832):
+        d.add("HV-SPOOR", LineString([Fs(150, bb), Fs(1450, bb)]), dlabel="railterminal 4 sporen x 1.300 m" if bb == 808 else None)
+    d.add("HV-D-KRAAN", poly([(150, 800), (1450, 800), (1450, 840), (150, 840)]), style="dashed", dlabel="RMG-kraanbaan")
+    d.add("HV-SPOOR", LineString([Fs(1450, 820), Fs(1560, 845), (650.0, 448.0)]))
+    d.add("HV-D-VERKEER", poly([(150, 845), (1440, 845), (1440, 870), (150, 870)]), dlabel="overslag vrachtauto's")
+    d.add("HV-WEG", LineString([Fs(0, 885), Fs(QL, 885)]), style="dashed")
+    # gebouwen en gate
+    d.add("HV-D-GEBOUW", poly([(10, 805), (60, 805), (60, 845), (10, 845)]), dlabel="kantoor terminal")
+    d.add("HV-D-GEBOUW", poly([(70, 805), (140, 805), (140, 885), (70, 885)]), dlabel="werkplaats")
+    d.add("HV-D-GEBOUW", poly([(1500, 820), (1560, 820), (1560, 880), (1500, 880)]), dlabel="gate (12 rijstroken)")
+    d.add("HV-D-GEBOUW", poly([(1565, 830), (1590, 830), (1590, 870), (1565, 870)]), dlabel="douane/scan")
+    d.add("HV-D-PARKEER", poly([(1460, 800), (1495, 800), (1495, 890), (1460, 890)]), dlabel="truckparking")
+    det["railterminal_m"] = 1300.0
+
+    # ---------------- graanterminal (droge bulk) ----------------
+    sil = []
+    for row_y in (221.0, 228.5):
+        for k in range(4):
+            g = Point(712 + 4.2 * k, row_y).buffer(1.5, 48)
+            sil.append(g)
+            d.add("HV-D-OPSLAG", g, dlabel="silo's 8 x D 30 m, H 40 m" if (k == 0 and row_y == 221.0) else None)
+    d.add("HV-D-OPSLAG", box(735, 212, 752, 236), dlabel="vlakke opslag")
+    d.add("HV-D-KRAAN", box(718.5, 250.5, 722.5, 254.5), dlabel="shiploader 1")
+    d.add("HV-D-KRAAN", box(739.5, 250.5, 743.5, 254.5), dlabel="shiploader 2")
+    d.add("HV-D-KRAAN", LineString([(717, 252.5), (745, 252.5)]))
+    d.add("HV-D-INSTALLATIE", LineString([(726, 230), (726, 245), (720.5, 250.5)]), dlabel="transportband")
+    d.add("HV-D-INSTALLATIE", LineString([(726, 245), (741.5, 250.5)]))
+    d.add("HV-D-GEBOUW", box(709, 203.5, 720, 208.5), dlabel="ontvangst vrachtauto")
+    d.add("HV-D-GEBOUW", box(724, 201.5, 733, 206.5), dlabel="ontvangst spoor")
+    d.add("HV-SPOOR", LineString([(722, 196), (724, 201.5), (733, 201.5), (735, 196)]))
+    d.add("HV-D-GEBOUW", box(748, 201.5, 756, 206.5), dlabel="kantoor/weegbrug")
+    vol = 8 * math.pi * 15 ** 2 * 40
+    det["graan_silo_m3"] = vol
+    det["graan_silo_ton"] = vol * 0.75
+
+    # ---------------- RoRo ----------------
+    inner = roro.buffer(-60 / s)
+    strips = []
+    bx0, by0, bx1, by1 = inner.bounds
+    y = by0 + 1.0
+    while y + 5 <= by1:
+        g = box(bx0 - 50, y, bx1 + 50, y + 5).intersection(inner.buffer(-1.0))
+        if not g.is_empty:
+            strips.append(g)
+            d.add("HV-D-PARKEER", g, dlabel="parkeervakken" if not strips[:-1] else None)
+        y += 6.5
+    park = sum(g.area for g in strips) * s * s
+    det["roro_parkeer_m2"] = park
+    det["roro_auto_capaciteit"] = park / 12.5   # 2,5 x 5,0 m per auto in de parkeerstroken
+    d.add("HV-D-GEBOUW", box(_slant(580, 293, 300) + 3, 296, _slant(580, 293, 300) + 11, 302), dlabel="kantoor RoRo")
+
+    # ---------------- havendienst ----------------
+    d.add("HV-D-GEBOUW", box(762, 203, 778, 212), dlabel="havenkantoor / VTS")
+    d.add("HV-D-GEBOUW", Point(826, 214).buffer(1.2), dlabel="VTS-toren")
+    d.add("HV-D-GEBOUW", box(782, 241, 798, 251), dlabel="loodsen + sleepdienst")
+    d.add("HV-D-GEBOUW", box(762, 241, 775, 251), dlabel="brandweer")
+    for k in range(3):
+        d.add("HV-SCHIP", box(778 + 9 * k, 256.6, 781 + 9 * k, 257.8), dlabel="sleepboten" if k == 0 else None)
+
+    # ---------------- LNG-terminal ----------------
+    for k, x in enumerate((626, 641, 656)):
+        d.add("HV-D-OPSLAG", box(x - 6, 468, x + 6, 480), style="dashed", dlabel="tankput" if k == 0 else None)
+        d.add("HV-D-OPSLAG", Point(x, 474).buffer(4.5, 64), dlabel="LNG-tank 180.000 m3 (full containment)" if k == 0 else None)
+    for k in range(4):
+        d.add("HV-D-INSTALLATIE", box(624 + 7 * k, 454.5, 629 + 7 * k, 458), dlabel="hervergassing 4 x 33%" if k == 0 else None)
+    d.add("HV-D-INSTALLATIE", box(654, 454.5, 662, 458), dlabel="BOG-compressor")
+    d.add("HV-D-INSTALLATIE", box(665, 454.5, 672, 458), dlabel="meetstation")
+    d.add("HV-D-GEBOUW", box(676, 454, 686, 460), dlabel="controlekamer")
+    d.add("HV-D-INSTALLATIE", Point(693, 480).buffer(0.8), dlabel="fakkel")
+    # steiger: laadarmen, breasting- en meerdolphins
+    nx, ny = jt[1], -jt[0]
+    for k in range(3):
+        p = (j1[0] + jt[0] * (k - 1) * 1.2, j1[1] + jt[1] * (k - 1) * 1.2)
+        d.add("HV-D-KRAAN", LineString([p, (p[0] + nx * 1.6, p[1] + ny * 1.6)]), dlabel="laadarmen 3x" if k == 0 else None)
+    for off in (-12, -6, 6, 12):
+        p = (j1[0] + jt[0] * off + nx * 0.6, j1[1] + jt[1] * off + ny * 0.6)
+        d.add("HV-D-INSTALLATIE", Point(p).buffer(0.9), dlabel="breasting dolphins" if off == -12 else None)
+    for off in (-20, -16, 16, 20):
+        p = (j1[0] + jt[0] * off + nx * 4.5, j1[1] + jt[1] * off + ny * 4.5)
+        d.add("HV-D-INSTALLATIE", Point(p).buffer(0.7), dlabel="meerdolphins" if off == -20 else None)
+    d.add("HV-D-INSTALLATIE", LineString([j0, j1]), dlabel="pijpleidingbrug")
+
+    # ---------------- centrale ----------------
+    for k in range(4):
+        x0 = 487 + 17 * k
+        d.add("HV-D-INSTALLATIE", box(x0, 456, x0 + 15, 466), dlabel="STEG-eenheid 4 x ca. 565 MW" if k == 0 else None)
+        d.add("HV-D-INSTALLATIE", Point(x0 + 12.5, 459).buffer(0.8))
+    d.add("HV-D-INSTALLATIE", box(558, 455, 590, 469), dlabel="hoogspanningsstation")
+    d.add("HV-D-INSTALLATIE", box(592, 474, 598, 481), dlabel="gasontvangst")
+    d.add("HV-D-GEBOUW", box(486, 474, 500, 482), dlabel="kantoor centrale")
+    d.add("HV-D-GEBOUW", box(505, 474, 520, 482), dlabel="waterbehandeling")
+    d.add("HV-D-GEBOUW", box(590, 451, 598, 455), dlabel="koelwaterpompen")
+    d.add("HV-LEIDING", LineString([(574, 455), (574, 446), (400, 446)]), style="dashed", dlabel="kabel naar hoogspanningsnet")
+    det["centrale_eenheden_mw"] = 4 * 565
+    d.detail_views = [
+        ("06", "Containerterminal", d.P(706, 368.5), 5000),
+        ("07", "Graan, RoRo en havendienst", d.P(700, 266), 6000),
+        ("08", "LNG-terminal en centrale", d.P(690, 448), 8000),
+    ]
+    DET.clear()
+    DET.update(det)
+    d.info["detail"] = det
 
 
 # ======================================================================================
