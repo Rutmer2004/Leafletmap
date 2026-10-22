@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Havenontwerp Groep 1</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  :root { --bg: #ffffff; --fg: #1b1b1b; --muted: #555; --line: #ccc; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #1d1f21; --fg: #eee; --muted: #aaa; --line: #444; } }
+  html, body { height: 100%; margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--fg); }
+  #map { position: absolute; inset: 0; }
+  .paneel { background: var(--bg); color: var(--fg); padding: 10px 12px; border-radius: 6px; max-width: 290px;
+            box-shadow: 0 1px 6px rgba(0,0,0,.35); font-size: 13px; line-height: 1.35; }
+  .paneel h1 { font-size: 15px; margin: 0 0 4px; }
+  .paneel small { color: var(--muted); }
+  .paneel label { display: block; margin: 3px 0; cursor: pointer; }
+  .leg i { display: inline-block; width: 14px; height: 10px; margin-right: 6px; border: 1px solid #0006; vertical-align: middle; }
+  #coord { font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/proj4@2.11.0/dist/proj4.js"></script>
+<script src="data.js"></script>
+<script>
+  // EPSG:31984 voor het tonen van projectcoördinaten onder de muis
+  proj4.defs("EPSG:31984", "+proj=utm +zone=24 +south +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs");
+
+  const map = L.map("map", { zoomControl: true }).setView([-21.255, -40.955], 13);
+  const luchtfoto = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    { maxZoom: 19, attribution: "Luchtfoto &copy; Esri, Maxar, Earthstar Geographics" }).addTo(map);
+  const osm = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+    { maxZoom: 19, attribution: "&copy; OpenStreetMap-bijdragers" });
+
+  const stijl = f => {
+    const p = f.properties, c = p.kleur || "#fff";
+    const vlak = ["HV-CONTAINER","HV-GRAAN","HV-RORO","HV-LNG","HV-CENTRALE","HV-HAVENDIENST","HV-BAGGER","HV-SCHIP","HV-GOLFBREKER","HV-GEUL"];
+    return {
+      color: c, weight: p.laag === "HV-KADE" ? 3 : p.laag === "HV-WEG" ? 2.5 : 1.5,
+      dashArray: ["HV-DRAAIKOM","HV-LEIDING","HV-FASEGRENS","HV-GEUL-AS","HV-SPOOR"].includes(p.laag) ? "6 4" : null,
+      fillColor: c, fillOpacity: vlak.includes(p.laag) ? (p.laag === "HV-GOLFBREKER" ? 0.9 : 0.35) : 0
+    };
+  };
+  const laag = fc => L.geoJSON(fc, {
+    style: stijl,
+    pointToLayer: (f, ll) => L.circleMarker(ll, { radius: 5, color: "#f00", weight: 2, fillOpacity: 0.8 }),
+    onEachFeature: (f, l) => {
+      const p = f.properties;
+      if (p.laag === "ANKER") l.bindPopup(`<b>${p.label}</b><br>E ${p.E.toLocaleString("nl-NL")}<br>N ${p.N.toLocaleString("nl-NL")}<br><small>EPSG:31984</small>`);
+      else if (p.label) l.bindTooltip(`${p.label}${p.fase > 1 ? " (fase " + p.fase + ")" : ""}`);
+    }
+  });
+  const DO = laag(window.HAVEN.do).addTo(map);
+  const SO = laag(window.HAVEN.so);
+  const kust = L.geoJSON(window.HAVEN.kustlijn, { style: { color: "#00e5ff", weight: 1.5 } }).addTo(map);
+  const zoek = L.layerGroup([
+    L.circleMarker([-21.309884, -40.957744], { radius: 7, color: "#ff4fd8" }).bindTooltip("São Francisco de Itabapoana (bronpunt)"),
+    L.circleMarker([-21.190796, -40.926339], { radius: 7, color: "#ff4fd8" }).bindTooltip("Rio Marobá / Barra de Boa Vista (bronpunt)")
+  ]).addTo(map);
+
+  L.control.layers({ "Luchtfoto (Esri)": luchtfoto, "OpenStreetMap": osm },
+    { "Definitief ontwerp (DO)": DO, "Schetsontwerp (SO)": SO, "Waterlijn 3-7-2026": kust, "Bronpunten zoekgebied": zoek },
+    { collapsed: false }).addTo(map);
+  L.control.scale({ metric: true, imperial: false }).addTo(map);
+
+  const info = L.control({ position: "bottomleft" });
+  info.onAdd = () => {
+    const d = L.DomUtil.create("div", "paneel");
+    d.innerHTML = `<h1>Havenontwerp Groep 1</h1>
+      <small>Atelier De Haven A &middot; SO v1.0 / DO v2.0 &middot; 22-10-2026</small>
+      <div class="leg" style="margin-top:6px">
+        <div><i style="background:#f77f00"></i>Containers 72/108/144 ha</div>
+        <div><i style="background:#ffd166"></i>Graan 30 ha</div>
+        <div><i style="background:#06d6a0"></i>RoRo 30 ha</div>
+        <div><i style="background:#ef233c"></i>LNG</div>
+        <div><i style="background:#c77dff"></i>Centrale (reservering)</div>
+        <div><i style="background:#3a86ff"></i>Gebaggerd -18,20 m MLWS</div>
+        <div><i style="background:#ffd60a"></i>Draaikom D 720 m</div>
+      </div>
+      <div id="coord" style="margin-top:6px"><small>Beweeg over de kaart voor E/N (EPSG:31984)</small></div>`;
+    L.DomEvent.disableClickPropagation(d);
+    return d;
+  };
+  info.addTo(map);
+  map.on("mousemove", e => {
+    const [x, y] = proj4("EPSG:4326", "EPSG:31984", [e.latlng.lng, e.latlng.lat]);
+    document.getElementById("coord").textContent =
+      `E ${x.toLocaleString("nl-NL", { maximumFractionDigits: 0 })}  N ${y.toLocaleString("nl-NL", { maximumFractionDigits: 0 })}`;
+  });
+  map.fitBounds(DO.getBounds().pad(0.05));
+</script>
+</body>
+</html>

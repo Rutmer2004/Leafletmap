@@ -1,0 +1,49 @@
+# Havenontwerp Groep 1: schetsontwerp en definitief ontwerp
+
+Atelier De Haven A, NHL Stenden. Haven voor containers, graan, voertuigen (RoRo), LNG en een gascentrale, met het
+Porto Central-masterplan als vormreferentie. Alles staat in **SIRGAS 2000 / UTM zone 24S (EPSG:31984), meter**.
+
+## Opgeleverd
+
+| Map / bestand | Inhoud |
+|---|---|
+| `CAD/Haven_SO.dxf` | Schetsontwerp (SO) in projectcoördinaten, lagen `HV-*`, luchtfoto als gekoppeld beeld, A1-layout 1:10.000 |
+| `CAD/Haven_DO.dxf` | Definitief ontwerp (DO), met maatvoering (DIMENSION), fasegrenzen en ankerpunten |
+| `CAD/Ondergrond/` | Sentinel-2 luchtfoto 03-07-2026 (JPG + `.jgw` + `.prj`), waterlijn en GSHHS-kust (JSON) |
+| `PDF/Haven_SO.pdf` | SO-01 overzicht 1:40.000 · SO-02 havenindeling 1:10.000 · SO-03 bespreekpunten |
+| `PDF/Haven_DO.pdf` | DO-01 overzicht · DO-02 havenplan 1:10.000 · DO-03 fasering 1:20.000 · DO-04 maatstaat en georeferentie |
+| `Maatstaat/Maatstaat_en_coordinaten.xlsx` | Maatstaat, ankerpunten (E/N + lat/lon), georeferentie, kustcontrole, besluitenlijst SO→DO |
+| `Onderbouwing/Rekenboek_herontwerp_bijgewerkt.xlsx` | Rekenboek met de gemeten tekenmaten teruggevoerd (Nautiek D31, Grondwerk C6/D21, Invoer, Keuzes K17–K29, tabblad `Tekening_DO`) |
+| `Onderbouwing/Toelichting_SO_DO.docx` | Toelichting: ondergrond, ligging, SO, bespreking en besluitenlijst, DO, open punten, werkwijze in Civil 3D |
+| `webkaart/index.html` | Interactieve Leaflet-kaart met SO en DO op luchtfoto (dubbelklikken of via GitHub Pages) |
+
+## DWG maken in Civil 3D
+
+1. Kopieer de map `CAD` inclusief `Ondergrond` (de luchtfoto is met een relatief pad gekoppeld).
+2. Open `Haven_DO.dxf` en `Haven_SO.dxf` en stel bij *Drawing Settings > Units and Zone* `SIRGAS2000.UTM-24S` en meter in.
+   Je hoeft niets te verschuiven: de objecten staan al op projectcoördinaten.
+3. Zet *Map Aerial* aan ter controle en leg het beeld vast met `GEOMAPIMAGE`.
+4. Sla op met `SAVEAS` als `Haven_DO.dwg` en `Haven_SO.dwg`. De layout `DO-02 A1 1-10000` plot je direct naar PDF.
+
+## Belangrijkste maten (DO)
+
+* Geul 220 m bodembreedte, −18,20 m MLWS. Lengte buiten de mond is voorlopig 10.000 m: het eindpunt moet nog op de −18,2 m-lijn van de bathymetrie komen.
+* Havenmond 350 m vrij tussen de golfbrekerfootprints. Vrije draaikom D 720 m. Stopweg van mond tot draaikom 1.700 m (5,1 LOA). Sleepbootkoppelpunt 1.500 m buiten de mond.
+* Containerkade 800 / 1.200 / 1.600 m en terrein 72 / 108 / 144 ha. Graan en RoRo hebben elk 300 m kade en 30 ha.
+* LNG-steiger met een ligplaatsenvelop van 400 m achter de zuidelijke dam. Tankzone van 25 ha met 3 × 180.000 m³ en ruimte voor een 4e tank. De centrale heeft een reservering van 49,5 ha.
+
+## Reproduceren
+
+```
+pip install ezdxf pyproj shapely matplotlib rasterio scikit-image pikepdf python-docx openpyxl basemap-data-hires
+python3 src/01_ondergrond_ophalen.py <map>     # Sentinel-2 uitsnede (AWS Open Data)
+python3 src/02_kustlijn_ndwi.py <map>          # waterlijn uit NDWI
+python3 src/03_kustcontrole_gshhs.py <map>     # onafhankelijke kustcontrole
+python3 src/haven.py                           # DXF, PDF, GeoJSON, maatstaat.json
+python3 src/documenten.py <Rekenboek_herontwerp.xlsx>   # maatstaat, rekenboek, toelichting
+```
+
+De geometrie staat op één plek (`src/haven.py`, functies `build_so` en `build_do`) in een lokaal havenstelsel
+(u = zeewaarts langs de havenas, azimut 102°; v = langs de kust). Eén vaste transformatie zet dat stelsel om naar EPSG:31984.
+
+Bron luchtfoto: Copernicus Sentinel-2 L2A (ESA), tegels 24KTB en 24KUB, opname 03-07-2026.
