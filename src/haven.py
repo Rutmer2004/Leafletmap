@@ -271,6 +271,7 @@ def _ship_along(p0, p1, side, beam_m, label, d, phase=1, length_m=None):
 
 TANK_X, TANK_Y = (650.0, 665.0, 680.0), 492.0   # LNG-tanks DO (renderpixels), zuidelijk in de LNG-zone
 RD = 40.0   # RoRo-terminal 400 m dieper in de insteek (golftoets met reflectie)
+RDX = -0.5 * RD   # _para hangt aan zijn eigen bovenrand: x terugschuiven zodat de kade op de rand van vinger 7/8 blijft
 LNG_X, LNG_AF = 800.0, 12.0   # LNG-ligplaats: x langs de zuidelijke dam en afstand hart schip tot damas (renderpixels)
 ZWAAI_D = 670.0          # zwaaiplaats binnenhaven = 2 x LOA maatgevend containerschip (334 m)
 GEUL_RECHT_M = 2500.0   # recht stuk in het verlengde van de havenmond (sleepboten op 1.500 m)
@@ -325,7 +326,7 @@ def build_do_render(coast=None, so=False):
     phi, err = fit_render_rotation(coast)
     A = render_affine(phi)
     d = Design("SO" if so else "DO", tf=lambda g: affinity.affine_transform(g, A))
-    d.version = "4.2" if so else "8.2"
+    d.version = "4.3" if so else "8.3"
     d.info = dict(render_schaal_m_per_px=RENDER_S, render_draaiing_graden=phi, render_kustfit_gem_afwijking_m=err,
                   render_affine=A, render_anker=RENDER_ANCHOR)
     s = RENDER_S
@@ -431,7 +432,7 @@ def build_do_render(coast=None, so=False):
                                                    # zodat ligplaats C1 vrij blijft; het hoofdbekken wordt daar verbreed
     R_ZW = 230.0 if so else ZWAAI_D / 2
     circle_b = Point(TB).buffer(R_ZW / s, 96)
-    rp = _para(624, 630, 305 + RD, 342 + RD)  # ligplaatsstrook RoRo (60 m) langs vinger 7/8
+    rp = _para(624 + RDX, 630 + RDX, 305 + RD, 342 + RD)  # ligplaatsstrook RoRo (60 m) direct tegen de RoRo-kade
     if so:
         d.add("HV-BAGGER", box(476, Y_MB0, 805, Y_MB1), label="Hoofdbekken", tag="bekken")
         d.add("HV-BAGGER", slip1, label="Insteekbekken containers", tag="bekken")
@@ -466,7 +467,7 @@ def build_do_render(coast=None, so=False):
         _ship_along(seg[i], seg[i + 1], side, BEAM, f"C{i + 1}", d, phase=ph, length_m=LOA)
     if not so:
         for ph, yy in ((2, 368.5), (3, 404.25)):
-            d.add("HV-FASEGRENS", LineString([(_slant(650, Y_TOP, yy), yy), (_slant(792, Y_TOP, yy), yy)]),
+            d.add("HV-FASEGRENS", LineString([(_slant(692, Y_TOP, yy), yy), (_slant(792, Y_TOP, yy), yy)]),
                   label="F1 | F2" if ph == 2 else "F2 | F3")
 
     # --- graan (noordkade), RoRo (vinger 7/8), havendienst ---------------------------------------------
@@ -479,7 +480,7 @@ def build_do_render(coast=None, so=False):
         d.add("HV-WEG", LineString([(763, 190), (763, Y_MB0 - 2)]), label="Weg door perceel")
         d.add("HV-RESERVE", f78, label="Uitbreiding (na 2045)")
     else:
-        roro = _para(580, 630, Y_MB1 + RD, 353 + RD)
+        roro = _para(580 + RDX, 630 + RDX, Y_MB1 + RD, 353 + RD)   # oostrand = RoRo-kade (rand vinger 7/8)
         d.add("HV-RORO", roro, label="RoRo 30 ha", tag="roro_plot")
         r0, r1 = (_slant(630, Y_MB1, 310 + RD), 310.0 + RD), (_slant(630, Y_MB1, 336.7 + RD), 336.7 + RD)
         d.add("HV-KADE", LineString([r0, r1]), label="RoRo-kade 300 m")
@@ -586,7 +587,7 @@ def build_do_render(coast=None, so=False):
     d.dim(seg[0], seg[4], 170 if not so else -170, "containerkade 4 x 400 = 1.600 m")
     d.dim((692, Y_BOT), (792, Y_BOT), -80, f"{nl0(100 * s * math.cos(math.atan(0.5)))} m")
     d.dim((716, Y_MB0), (746, Y_MB0), -90, "300 m")
-    d.dim(r0, r1, (-110 if not so else 90), "300 m")
+    d.dim(r0, r1, (110 if not so else 90), "300 m")
     d.dim((705, 199), (758, 199), 70, "530 m")
     d.dim((600, Y_MB0), (600, Y_MB1), 120, f"{nl0((Y_MB1 - Y_MB0) * s)} m")
     d.dim((_slant(630, Y_MB1, 330), 330), (_slant(692, Y_TOP, 330), 330), -60,
@@ -813,9 +814,9 @@ def add_terminal_details(d, f6, roro, j0, j1, b0, b1, jt):
     det["roro_auto_capaciteit"] = park / 12.5   # 2,5 x 5,0 m per auto in de parkeerstroken
     d.add("HV-D-GEBOUW", box(_slant(580, 293, 300 + RD) + 3, 296 + RD, _slant(580, 293, 300 + RD) + 11, 302 + RD),
           dlabel="kantoor RoRo")
-    d.add("HV-D-VERKEER", _para(624, 630, 293 + RD, 353 + RD), dlabel="aanlandings- en opstelzone 60 m")
-    d.add("HV-D-GEBOUW", _para(580, 586, 318 + RD, 334 + RD), dlabel="PDI-hal")
-    d.add("HV-D-VERKEER", _para(580, 586, 336 + RD, 352 + RD), dlabel="laadstraat autotransporters")
+    d.add("HV-D-VERKEER", _para(624 + RDX, 630 + RDX, 293 + RD, 353 + RD), dlabel="aanlandings- en opstelzone 60 m")
+    d.add("HV-D-GEBOUW", _para(580 + RDX, 586 + RDX, 318 + RD, 334 + RD), dlabel="PDI-hal")
+    d.add("HV-D-VERKEER", _para(580 + RDX, 586 + RDX, 336 + RD, 352 + RD), dlabel="laadstraat autotransporters")
 
     # ---------------- havendienst ----------------
     d.add("HV-D-GEBOUW", box(762, 203, 778, 212), dlabel="havenkantoor / VTS")
@@ -994,8 +995,15 @@ def main():
     if bodem.available():
         lijnen = bodem.dieptelijnen()
         for d in (so, do):
+            # dieptelijnen van de bestaande bodem niet door het havengebied (dammen, bekkens, terreinen) laten lopen
+            haven = unary_union([i["geom"] for i in d.items if i["geom"].geom_type in ("Polygon", "MultiPolygon")
+                                 and i["layer"] not in ("HV-GEUL", "HV-SCHIP")]).buffer(150)
             for lv, ls in lijnen:
-                d.items.append(dict(layer="HV-DIEPTELIJN", geom=ls, local=None, label=f"{lv:g}".replace(".", ","), phase=1))
+                rest = ls.difference(haven)
+                for part in getattr(rest, "geoms", [rest]):
+                    if part.geom_type == "LineString" and part.length > 1500:
+                        d.items.append(dict(layer="HV-DIEPTELIJN", geom=part, local=None, label=f"{lv:g}".replace(".", ","),
+                                            phase=1))
         do.info["grondwerk"] = bodem.grondwerk(do)
         do.info["geulprofiel"] = bodem.profiel_route(do.notes["geul_route"][:-1] + [_verleng(do.notes["geul_route"], 5000)]).tolist()
     if bodem.available():

@@ -187,18 +187,18 @@
     "3": 144.00275175003154
    },
    "graan_ha": 30.421840072472975,
-   "roro_ha": 30.210367500015284,
+   "roro_ha": 30.21036750001904,
    "lng_zone_ha": 54.85599078331598,
    "centrale_ha": 43.50292919998547,
    "havendienst_ha": 42.95410752374204,
-   "reserve_ha": 143.22735231754365,
+   "reserve_ha": 131.14320531753455,
    "binnenbekken_m2": {
-    "1": 1287976.5068473087,
-    "2": 1510224.1104221,
-    "3": 1740628.5132224401
+    "1": 1287976.5068473853,
+    "2": 1510224.1104222247,
+    "3": 1740628.513222565
    },
    "voorhaven_bagger_m2": 1188748.962696072,
-   "havenbekken_totaal_m2": 2929377.475918502,
+   "havenbekken_totaal_m2": 2929377.4759186157,
    "reserve_water_m2": 1221304.456800391,
    "vrije_breedte_binnenbekken_m": 334.035,
    "breedte_insteek_m": 556.4857654244177,
@@ -214,7 +214,7 @@
    "vz_containerterrein_tot_tankzone_m": 226.83882453963994,
    "vz_dichtstbijzijnde_ander_schip_m": 1490.0285055125112,
    "breedte_hoofdbekken_m": 371.295,
-   "terreinophoging_m2": 3459479.8682956323
+   "terreinophoging_m2": 3459479.8682956705
   },
   "anker": {
    "A1": {
@@ -446,19 +446,19 @@
       "vak": "Insteekbekken containers  -18,20",
       "zone": 1,
       "diepte": 18.2,
-      "oppervlak": 459000.0,
-      "bestaande_diepte": -7.000981330871582,
-      "volume": 11567250.0,
-      "volume_18": 11567250.0
+      "oppervlak": 458100.0,
+      "bestaande_diepte": -6.989364147186279,
+      "volume": 11539248.0,
+      "volume_18": 11539248.0
      },
      {
       "vak": "Insteek F2",
       "zone": 1,
       "diepte": 18.2,
-      "oppervlak": 223200.0,
-      "bestaande_diepte": -5.94297456741333,
-      "volume": 5388712.0,
-      "volume_18": 5388712.0
+      "oppervlak": 224100.0,
+      "bestaande_diepte": -5.939962863922119,
+      "volume": 5409766.0,
+      "volume_18": 5409766.0
      },
      {
       "vak": "Insteek F3",
@@ -474,9 +474,9 @@
       "zone": 1,
       "diepte": 13.7,
       "oppervlak": 22500.0,
-      "bestaande_diepte": -6.165416240692139,
-      "volume": 446971.875,
-      "volume_18": 548221.9375
+      "bestaande_diepte": -6.474252700805664,
+      "volume": 453920.65625,
+      "volume_18": 555170.625
      },
      {
       "vak": "Geul tot DHN -15 m",
@@ -500,13 +500,13 @@
     "maaiveld": 5.0,
     "zetting": 0.5,
     "terrein_m2": 3459600.0,
-    "terrein_gem_hoogte": 7.05565071105957,
-    "ophoging_m3": 354822.125,
-    "afgraving_m3": 7346330.0,
+    "terrein_gem_hoogte": 7.055752277374268,
+    "ophoging_m3": 355044.34375,
+    "afgraving_m3": 7346682.5,
     "zone1": {
      "oppervlak": 2930400.0,
-     "volume": 61936559.875,
-     "bestaande_diepte": -3.2296373923046
+     "volume": 61936560.65625,
+     "bestaande_diepte": -3.2296373444158557
     },
     "zone2": {
      "oppervlak": 3898800.0,
@@ -518,8 +518,8 @@
      "volume": 1233305.875,
      "bestaande_diepte": 16.712512969970703
     },
-    "totaal_bagger_m3": 81449947.75,
-    "besparing_dieptezones_m3": 860850.0625
+    "totaal_bagger_m3": 81449948.53125,
+    "besparing_dieptezones_m3": 860849.96875
    },
    "geulprofiel": [
     [
@@ -1826,8 +1826,8 @@
   "oppervlakken": {
    "-18.20": {
     "punten": 177,
-    "driehoeken": 178,
-    "oppervlak_m2": 7086042.239644939
+    "driehoeken": 176,
+    "oppervlak_m2": 7086042.239644965
    },
    "-16.20": {
     "punten": 48,
@@ -1837,7 +1837,7 @@
    "-13.70": {
     "punten": 4,
     "driehoeken": 2,
-    "oppervlak_m2": 22355.671949967615
+    "oppervlak_m2": 22355.671950057924
    }
   }
  }

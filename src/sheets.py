@@ -299,9 +299,11 @@ VERSIES = {
            ("03", "v7.0: golftoets, dieptezones, bodemmodel GEBCO, LNG-veiligheidszones"),
            ("04", "v8.0: geul met bocht, zwaaiplaats 2 x LOA, golftoets met reflectie"),
            ("05", "v8.1: teksten zonder overlap, rustiger tekenbeeld"),
-           ("06", "v8.2: NHL Stenden-template (A1), golftoets op DXF")],
+           ("06", "v8.2: NHL Stenden-template (A1), golftoets op DXF"),
+           ("07", "v8.3: RoRo-terrein en -13,70-vak tegen de kade, fasegrenzen ingekort")],
     "SO": [("01", "v4.0: schetsontwerp op de Porto Central-render met bespreekpunten"),
-           ("02", "v4.2: NHL Stenden-template (A1), teksten zonder overlap")],
+           ("02", "v4.2: NHL Stenden-template (A1), teksten zonder overlap"),
+           ("03", "v4.3: dieptelijnen niet door het havengebied")],
 }
 
 
