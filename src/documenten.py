@@ -30,9 +30,9 @@ BRON = [(k, v) for k, v in GEO.items() if not k.startswith("_")]
 
 BESLUITEN = [
     ("B01", "Havenligging", "Zoekgebied locatie B; exacte plaats open.",
-     f"Havenas haaks op de kust (azimut 102 gr), kustpunt A1 E {nl(ANK['A1']['E'], 1)} / N {nl(ANK['A1']['N'], 1)}; "
-     "tussen kustbebouwing (zuid, N ca. 7.646.300) en zichtbaar grondwerk (noord, N ca. 7.650.000); rivier en wetland in het zuidwesten vermeden.",
-     "Vastgelegd", "Eigendom/bestemming en relatie met het werkelijke Porto Central-terrein bij de begeleider navragen."),
+     f"Locatie vastgesteld: Porto Central, Presidente Kennedy - Espírito Santo (29350-000). Havenas haaks op de kust (azimut 110 gr) "
+     f"door het bouwterrein fase 1; kustpunt A1 E {nl(ANK['A1']['E'], 1)} / N {nl(ANK['A1']['N'], 1)}; bekkens landinwaarts op het Porto Central-terrein.",
+     "Vastgelegd", "Ligging van de havenas op het terrein afstemmen met het bouwterrein fase 1 / masterplan."),
     ("B02", "Havenmond", f"SO: 350 m tussen damhartlijnen, vrij tussen footprints maar {nl(SO['havenmond_vrij_m'])} m.",
      f"DO: dammen verlegd, {nl(DO['havenmond_vrij_m'])} m vrij tussen de golfbrekerfootprints (90 m breed).",
      "Verwerkt", "Na golfbrekerontwerp (kruin, taluds) footprint en vrije breedte opnieuw meten."),
@@ -47,7 +47,7 @@ BESLUITEN = [
     ("B05", "Sleepbootkoppelpunt", "SO: niet getekend.",
      f"DO: koppelpunt op de geulas, {nl(DO['sleepboot_buiten_mond_m'])} m buiten de mond (A4).",
      "Verwerkt", "Bevestigen met loods/sleepdienst en golfklimaat (werkbaarheid)."),
-    ("B06", "LNG-steiger en tanks", "SO: LNG aan de noordzijde; wortel noorddam en tanks bij grondwerk N 7.650 km en tegen de containeruitbreiding.",
+    ("B06", "LNG-steiger en tanks", "SO: LNG aan de noordzijde; tanks direct tegen de containeruitbreiding en de hoofdcorridor, LNG-schepen langs de containerkade.",
      f"DO: LNG-steiger aan de lijzijde van de zuidelijke dam in eigen insteek, {nl(DO['lng_ligplaats_tot_draaikom_m'])} m vrij van de draaikom; "
      f"tankzone 25 ha met 3 x 180.000 m3 en ruimte voor een 4e tank; {nl(DO['lng_tank_tot_roro_m'])} m tot RoRo-terrein.",
      "Verwerkt / QRA open", "QRA en veiligheidsafstanden; N-1-voorraadbeleid kiezen (4e tank of kleiner buffer)."),
@@ -152,8 +152,9 @@ def write_maatstaat(path):
     sheet(ws, "Ontwerpankerpunten DO", ["Punt", "Omschrijving", "E (m)", "N (m)", "Lat WGS84", "Lon WGS84", "u lokaal (m)", "v lokaal (m)"],
           rows, [7, 34, 14, 14, 13, 13, 12, 12])
     r = ws.max_row + 2
-    for t in ["Lokaal havenstelsel: oorsprong A1; u-as azimut 102 gr (zeewaarts), v-as azimut 12 gr (langs de kust).",
-              "E = 296650,0 + u*sin(102 gr) + v*sin(12 gr);  N = 7648300,0 + u*cos(102 gr) + v*cos(12 gr).",
+    O, az = D["lokaal"]["O"], D["lokaal"]["azimut_u"]
+    for t in [f"Lokaal havenstelsel: oorsprong A1; u-as azimut {az:.0f} gr (zeewaarts), v-as azimut {az - 90:.0f} gr (langs de kust).",
+              f"E = {O[0]:.1f} + u*sin({az:.0f} gr) + v*sin({az - 90:.0f} gr);  N = {O[1]:.1f} + u*cos({az:.0f} gr) + v*cos({az - 90:.0f} gr).",
               "Lat/lon via pyproj (EPSG:31984 -> EPSG:4326)."]:
         ws.cell(r, 1, t)
         r += 1
@@ -179,7 +180,7 @@ def write_maatstaat(path):
         c = ws.cell(r + 1, i + 1, h)
         c.font = Font(bold=True, color="FFFFFF")
         c.fill = HEAD
-    pts = [("H1", "Wegkruising landinwaarts (kies zelf)"), ("H2", "Hoek bouwterrein N 7.650 km"), ("H3", "Kustbebouwing zuid, wegkruising")]
+    pts = [("H1", "Wegkruising landinwaarts (kies zelf)"), ("H2", "Hoek bouwterrein fase 1 aan het strand"), ("H3", "Kustbebouwing zuid, wegkruising")]
     for j, (p, o) in enumerate(pts):
         rr = r + 2 + j
         ws.cell(rr, 1, p)
@@ -329,15 +330,16 @@ def write_docx(path, figs):
 
     h("3 Gekozen havenligging")
     a1 = ANK["A1"]
-    p(f"De haven ligt in het zoekgebied van locatie B, tussen de bronpunten São Francisco de Itabapoana en Rio Marobá. De havenas staat haaks "
-      f"op de kust (azimut 102 gr; de kust loopt hier onder {GEO['_kust_azimut_graden']:.1f} gr). Het kustpunt op de havenas (A1) ligt op "
+    p(f"De locatie is vastgesteld: Porto Central, Presidente Kennedy - Espírito Santo, 29350-000, Brazilië. Dit ligt binnen het zoekgebied van "
+      f"locatie B, tussen de bronpunten São Francisco de Itabapoana en Rio Marobá. De havenas staat haaks "
+      f"op de kust (azimut 110 gr; de kust loopt hier onder {GEO['_kust_azimut_graden']:.1f} gr) en loopt door het bouwterrein van fase 1 dat op de "
+      f"luchtfoto van 3 juli 2026 aan het strand zichtbaar is. Het kustpunt op de havenas (A1) ligt op "
       f"E {nl(a1['E'], 1)} / N {nl(a1['N'], 1)} (WGS84 {a1['lat']:.6f}, {a1['lon']:.6f}).")
     bullets([
-        "Zuidgrens: kustbebouwing op circa N 7.646.300; de LNG-tanks liggen op ruim 880 m daarvan.",
-        "Noordgrens: zichtbaar grondwerk/bouwterrein rond N 7.650.000 (mogelijk het werkelijke Porto Central-terrein; te verifiëren). "
-        "De haven blijft daar ten zuiden van, conform de opdracht om de werkelijke locatie niet automatisch over te nemen.",
-        "Zuidwesten: rivier en wetland/mangrove worden vermeden.",
-        "Rechte, open kust met strandwal; achterland (plantages/grasland) is bereikbaar voor weg en spoor.",
+        "Havenmond, voorhaven en draaikom liggen zeewaarts van het bouwterrein fase 1 aan het strand.",
+        "Binnenbekken, containerterminal, graan en RoRo liggen landinwaarts op het kale Porto Central-terrein (restinga).",
+        f"LNG en centrale liggen in het zuiden van het terrein; de dichtstbijzijnde kustbebouwing (N ca. 7.646.300) ligt op ruim {nl(DO['lng_tank_tot_kustbebouwing_zuid_m'] / 1000, 1)} km van de tanks.",
+        "De rivier en het wetland bij de Itabapoana-monding blijven buiten het plan.",
     ])
     if "DO-01" in figs:
         doc.add_picture(figs["DO-01"], width=Cm(16.5))
@@ -399,7 +401,7 @@ def write_docx(path, figs):
         "Golfbrekerontwerp (kruin, taluds, golfklimaat): footprint en havenmond opnieuw meten.",
         "QRA LNG en N-1-voorraadbeleid; definitieve dolphins en veiligheidszones.",
         "Vermogen en proceskeuze centrale; koelwaterstudie.",
-        "Relatie met het zichtbare grondwerk bij N 7.650.000 en eigendom/bestemming van het terrein.",
+        "Afstemming met het bouwterrein fase 1 en het officiële Porto Central-masterplan (exacte as en kadeligging).",
         "Variantafweging (tabblad Afweging) met de eigen groepsschetsen en motivering.",
     ])
 

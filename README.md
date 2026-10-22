@@ -1,7 +1,8 @@
 # Havenontwerp Groep 1: schetsontwerp en definitief ontwerp
 
 Atelier De Haven A, NHL Stenden. Haven voor containers, graan, voertuigen (RoRo), LNG en een gascentrale, met het
-Porto Central-masterplan als vormreferentie. Alles staat in **SIRGAS 2000 / UTM zone 24S (EPSG:31984), meter**.
+Porto Central-masterplan als vormreferentie.
+**Locatie: Porto Central, Presidente Kennedy - Espírito Santo, 29350-000, Brazilië.** Alles staat in **SIRGAS 2000 / UTM zone 24S (EPSG:31984), meter**.
 
 ## Opgeleverd
 
@@ -44,6 +45,6 @@ python3 src/documenten.py <Rekenboek_herontwerp.xlsx>   # maatstaat, rekenboek, 
 ```
 
 De geometrie staat op één plek (`src/haven.py`, functies `build_so` en `build_do`) in een lokaal havenstelsel
-(u = zeewaarts langs de havenas, azimut 102°; v = langs de kust). Eén vaste transformatie zet dat stelsel om naar EPSG:31984.
+(u = zeewaarts langs de havenas, azimut 110°; v = langs de kust). Eén vaste transformatie zet dat stelsel om naar EPSG:31984.
 
 Bron luchtfoto: Copernicus Sentinel-2 L2A (ESA), tegels 24KTB en 24KUB, opname 03-07-2026.

@@ -114,7 +114,7 @@ def _layout(doc, d):
     lay.add_lwpolyline([(640, 10), (640, 584)])
     y = 570
     title = "SCHETSONTWERP (SO)" if d.code == "SO" else "DEFINITIEF ONTWERP (DO)"
-    for t, h in [("Havenontwerp Groep 1 - Atelier De Haven A", 6), (title, 8),
+    for t, h in [("Havenontwerp Groep 1 - Porto Central, Presidente Kennedy (ES)", 6), (title, 8),
                  (f"Blad {d.code}-02  Havenindeling  |  versie {'1.0' if d.code == 'SO' else '2.0'}  |  22-10-2026", 4),
                  ("Schaal 1:10.000 (A1)  |  noordpijl = grid-noord (verschil met ware noord 0,70 gr)", 3.5),
                  ("Stelsel: SIRGAS 2000 / UTM zone 24S, EPSG:31984, eenheid m", 3.5),

@@ -25,12 +25,14 @@ IMG_BOUNDS = (284000.0, 7632000.0, 318000.0, 7666000.0)  # W, S, E, N (10 m pixe
 
 # --------------------------------------------------------------------------------------
 # Lokaal havenstelsel
-#   O    = kustlijn (waterlijn 3-7-2026) op de havenas
-#   u    = zeewaarts langs de havenas, azimut 102 graden (loodrecht op de kust)
-#   v    = langs de kust, azimut 12 graden (positief naar het noorden)
+#   O    = kustlijn (waterlijn 3-7-2026) op de havenas, door het Porto Central-terrein
+#          (Presidente Kennedy, Espírito Santo; bouwterrein fase 1 zichtbaar op de luchtfoto)
+#   u    = zeewaarts langs de havenas, azimut 110 graden (loodrecht op de kust)
+#   v    = langs de kust, azimut 20 graden (positief naar het noorden)
 # --------------------------------------------------------------------------------------
-O = (296650.0, 7648300.0)
-AZ_U = 102.0
+O = (297135.0, 7650000.0)
+AZ_U = 110.0
+LOCATIE = "Porto Central, Presidente Kennedy - Espírito Santo, 29350-000, Brazilië"
 EU = (math.sin(math.radians(AZ_U)), math.cos(math.radians(AZ_U)))
 EV = (math.sin(math.radians(AZ_U - 90)), math.cos(math.radians(AZ_U - 90)))
 
@@ -440,7 +442,7 @@ def main():
     geo["_gshhs"] = dict(rijen=diffs, gemiddeld_m=float(np.mean([r["dE"] for r in diffs])),
                          std_m=float(np.std([r["dE"] for r in diffs])))
     # kustlijnoriëntatie bij de haven
-    P_ = np.array([p for p in coast.coords if 7647000 < p[1] < 7649600 and p[0] > 295500])
+    P_ = np.array([p for p in coast.coords if 7648800 < p[1] < 7651300 and p[0] > 295500])
     k = np.polyfit(P_[:, 1], P_[:, 0], 1)[0]
     geo["_kust_azimut_graden"] = math.degrees(math.atan(k))
 

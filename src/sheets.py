@@ -235,7 +235,7 @@ def legend(bg, y_top, d, fs=7.2):
 def title_block(bg, d, blad, naam, schaal, extra=None):
     x0, y0, w = PANEL_X - 3, 8, PW - PANEL_X - 5
     rows = [
-        ("Project", "Havenontwerp Porto Central-referentie, Groep 1"),
+        ("Project", "Havenontwerp Porto Central, Presidente Kennedy (ES) - Groep 1"),
         ("Module", "Atelier De Haven A | NHL Stenden Civiele Techniek"),
         ("Bladnaam", naam),
         ("Status", "SCHETSONTWERP (SO)" if d.code == "SO" else "DEFINITIEF ONTWERP (DO)"),
@@ -278,7 +278,7 @@ def text_block(bg, y, lines, fs=6.8, lh=4.2, title=None, x=None):
 # --------------------------------------------------------------------------------------
 def sheet_overview(pdf, d, coast, geo):
     f, bg = fig_new()
-    center = (301200.0, 7648900.0)
+    center = (301500.0, 7649400.0)
     ax = map_axes(f, MAP, center, 40000)
     grid(ax, 2000)
     # zoekgebied: kuststrook tussen de twee bronpunten
@@ -302,7 +302,7 @@ def sheet_overview(pdf, d, coast, geo):
         if k in ("A1", "A3", "A4", "A5"):
             ax.text(a["E"], a["N"] - 350, f"{k} {a['naam']}", fontsize=7, color="white", ha="center", va="top",
                     path_effects=HALO, zorder=50, rotation=0, clip_on=True)
-    for (x, y, t) in [(296000, 7645900, "kustbebouwing\nN ≈ 7.646.300"), (296500, 7650500, "zichtbaar grondwerk /\nbouwterrein (te verifiëren)"),
+    for (x, y, t) in [(296000, 7645900, "kustbebouwing\nN ≈ 7.646.300"), (295800, 7652600, "Porto Central-terrein\nPresidente Kennedy (ES)"),
                       (293800, 7645000, "rivier + mangrove/wetland\n(vermijden)")]:
         ax.text(x, y, t, fontsize=7, color="#ffd60a", ha="right", path_effects=HALO, zorder=50)
     north_scale(ax, 40000, 4000)
@@ -311,13 +311,14 @@ def sheet_overview(pdf, d, coast, geo):
     gs = geo["_gshhs"]
     ga = geo["_afstand"]
     lines = [
-        "**Gekozen havenligging",
+        "**Havenligging (vastgesteld)",
+        "Porto Central, Presidente Kennedy - ES, 29350-000",
         f"Havenas haaks op de kust: azimut {H.AZ_U:.0f} gr (kust {geo['_kust_azimut_graden']:.1f} gr).",
         f"A1 kustpunt: E {nl(a1['E'], 1)}  N {nl(a1['N'], 1)}",
         f"   = {a1['lat']:.6f}, {a1['lon']:.6f} (WGS84)",
-        "Tussen kustbebouwing (zuid) en grondwerk (noord);",
-        "rivier/wetland in het zuidwesten vermeden;",
-        "rechte, open kust met bereikbaar achterland.",
+        "Havenas door het bouwterrein fase 1 aan het strand",
+        "(lichte rechthoek op de luchtfoto 03-07-2026);",
+        "bekkens landinwaarts op het kale Porto Central-terrein.",
         "**Georeferentiecontrole",
         f"GSHHS-kust vs. S2-waterlijn: gem. {nl(gs['gemiddeld_m'], 0)} m, sd {nl(gs['std_m'], 0)} m",
         f"   ({len(gs['rijen'])} profielen, N 7.642-7.656 km)",
@@ -462,7 +463,7 @@ def sheet_tables(pdf, d, geo):
               title="Ontwerpankerpunten - EPSG:31984 (E/N) en WGS84 (lat/lon)")
     text_block(bg, y - 6, [
         f"Lokaal havenstelsel: oorsprong A1, u-as azimut {H.AZ_U:.0f} gr (zeewaarts), v-as azimut {H.AZ_U - 90:.0f} gr.",
-        "E = 296.650,0 + u sin(102) + v sin(12);  N = 7.648.300,0 + u cos(102) + v cos(12).",
+        f"E = {nl(H.O[0], 1)} + u sin({H.AZ_U:.0f}) + v sin({H.AZ_U - 90:.0f});  N = {nl(H.O[1], 1)} + u cos({H.AZ_U:.0f}) + v cos({H.AZ_U - 90:.0f}).",
         "Alle maten in de DXF staan direct in projectcoördinaten; er is geen lokale verschuiving meer nodig.",
     ], fs=8.4, lh=5.2, x=15)
     # georeferentie
@@ -497,7 +498,7 @@ def so_markup(d):
         (1800, 0, 300, f"Havenmond {nl(m['havenmond_vrij_m'])} m vrij tussen dammen (350 m hart-hart gemeten)"),
         (150, 0, 480, f"Draaikom raakt landhoeken ({nl(m['draaikom_overlap_land_m2'] / 1e4, 1)} ha); stopweg {nl(m['stopweg_mond_draaikom_m'])} m < 5 LOA"),
         (2250, -650, 300, "Geen sleepbootkoppelpunt buiten de dammen; geulknik buiten blad"),
-        (-300, 1500, 600, "LNG en wortel N-dam bij grondwerk N 7.650 km; tanks tegen containeruitbreiding"),
+        (-300, 1500, 600, "LNG noordzijde: tanks tegen containeruitbreiding en hoofdcorridor"),
         (-1100, -525, 420, "Graan + RoRo op één perceel; weg kruist het terrein"),
         (-1700, 675, 650, "Containers F1 aan landeinde: heel bekken in F1 baggeren"),
     ]
