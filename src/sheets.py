@@ -252,6 +252,7 @@ def title_block(bg, d, blad, naam, schaal, extra=None):
         ("Kaartbron", "Copernicus Sentinel-2 L2A (ESA), 03-07-2026, 10 m"),
         ("", "tegels 24KTB/24KUB, AWS Open Data COG; geraadpleegd " + DATE),
         ("Kustlijn", "waterlijn 03-07-2026 uit NDWI (geen MLWS-lijn)"),
+        ("Peildatum", "geen peiling ingelezen; bathymetrie en peildatum nog toe te voegen"),
     ]
     if extra:
         rows += extra

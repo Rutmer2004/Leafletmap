@@ -138,6 +138,7 @@ def _layout(doc, d):
                  ("Stelsel: SIRGAS 2000 / UTM zone 24S, EPSG:31984, eenheid m", 3.5),
                  ("Hoogte/diepte: m t.o.v. MLWS (voorlopig; koppeling MLWS-DHN nog te verifiëren)", 3.5),
                  ("Kaartbron: Copernicus Sentinel-2 L2A, opname 03-07-2026, 10 m", 3.5),
+                 ("Peildatum: nog geen peiling ingelezen (bathymetrie toevoegen)", 3.5),
                  ("Online ondergrond toevoegen: GEOMAPIMAGE (Map Aerial)", 3.5)]:
         lay.add_text(t, height=h).set_placement((648, y), align=TextEntityAlignment.TOP_LEFT)
         y -= h + 5

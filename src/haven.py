@@ -270,7 +270,7 @@ def build_do_render(coast=None, so=False):
     phi, err = fit_render_rotation(coast)
     A = render_affine(phi)
     d = Design("SO" if so else "DO", tf=lambda g: affinity.affine_transform(g, A))
-    d.version = "4.0" if so else "5.0"
+    d.version = "4.0" if so else "5.1"
     d.info = dict(render_schaal_m_per_px=RENDER_S, render_draaiing_graden=phi, render_kustfit_gem_afwijking_m=err,
                   render_affine=A, render_anker=RENDER_ANCHOR)
     s = RENDER_S
@@ -396,6 +396,11 @@ def build_do_render(coast=None, so=False):
         r0, r1 = (_slant(630, Y_MB1, 310), 310.0), (_slant(630, Y_MB1, 336.7), 336.7)
         d.add("HV-KADE", LineString([r0, r1]), label="RoRo-kade 300 m")
         _ship_along(r0, r1, 1, 37.7, "RoRo-schip", d, length_m=219.9)
+        rm = ((r0[0] + r1[0]) / 2, (r0[1] + r1[1]) / 2)  # ramp (hekramp) midden aan de kade, landinwaarts
+        d.add("HV-RORO", Polygon([(rm[0] - 1.3, rm[1] - 2.2), (rm[0] + 0.9, rm[1] + 2.2), (rm[0] - 3.4, rm[1] + 3.6),
+                                  (rm[0] - 5.6, rm[1] - 0.8)]), label="ramp")
+        d.add("HV-WEG", LineString(roro.buffer(-60 / s).exterior.coords), style="dashed", label="rijcircuit RoRo")
+        d.add("HV-RORO", box(_slant(580, Y_MB1, 345) + 1, 343, _slant(580, Y_MB1, 345) + 9, 350), label="inspectie")
         d.add("HV-RESERVE", f78.difference(roro), label="Uitbreiding eigen terminals (na 2045)")
         d.add("HV-GRAAN", box(705, 199, 758, Y_MB0), label="Graan 30 ha", tag="graan_plot")
         d.add("HV-GRAAN", box(715, 205, 745, 230))  # silo's
