@@ -177,74 +177,91 @@ def _langs(d, label, n=5):
     return [(m[0] + ux * t, m[1] + uy * t) for t in np.linspace(-0.45 * L, 0.45 * L, n)]
 
 
-def toets(d, T=8.0, h=15.0, reflectie=True):
+KETEN = {"VH": 1, "HB": 2, "INS": 3}          # aantal openingen vanaf zee: voorhaven, hoofdbekken, insteek
+REGIO_NAAM = {"VH": "voorhaven", "HB": "hoofdbekken", "INS": "insteekbekken"}
+WANDTYPE = {"KADE": CR_KADE, "OPEN": CR_OPEN, "TALUD": CR_TALUD}
+
+
+def model_uit_ontwerp(d):
+    """Alles wat de golftoets nodig heeft, uit het ontwerp (haven.py)."""
+    from shapely.ops import unary_union
     mond, hb, ins = openingen(d)
-    w_vh, w_hb, w_ins = wanden(d) if reflectie else (None, None, None)
-    W = {1: [w_vh], 2: [w_vh, w_hb], 3: [w_vh, w_hb, w_ins]}
-    lig = {"Containers C1-C4 (insteek, westzijde)": ([p for i in range(1, 5) for p in _langs(d, f"C{i}", 3)], [mond, hb, ins],
-                                                      "containers"),
-           "Graan (open kade, noordkade hoofdbekken)": (_langs(d, "Graanschip"), [mond, hb], "graan"),
-           "RoRo (insteek, vinger 7/8)": (_langs(d, "RoRo-schip"), [mond, hb, ins], "RoRo"),
-           "LNG (achter zuidelijke dam)": (_langs(d, "GASLOG GREECE"), [mond], "LNG")}
-    # vergelijking: containerkade aan de oostzijde (voorhaven), punten 30 m buiten de oostrand van vinger 6
+    w_vh, w_hb, w_ins = wanden(d)
+    lig = [dict(naam="Containers C1-C4 (insteek, westzijde)", soort="containers", regio="INS",
+                punten=[p for i in range(1, 5) for p in _langs(d, f"C{i}", 3)],
+                lijnen=[(_langs(d, f"C{i}", 2)) for i in range(1, 5)]),
+           dict(naam="Graan (open kade, noordkade hoofdbekken)", soort="graan", regio="HB",
+                punten=_langs(d, "Graanschip"), lijnen=[_langs(d, "Graanschip", 2)]),
+           dict(naam="RoRo (insteek, vinger 7/8)", soort="RoRo", regio="INS",
+                punten=_langs(d, "RoRo-schip"), lijnen=[_langs(d, "RoRo-schip", 2)]),
+           dict(naam="LNG (achter zuidelijke dam)", soort="LNG", regio="VH",
+                punten=_langs(d, "GASLOG GREECE"), lijnen=[_langs(d, "GASLOG GREECE", 2)])]
+    # vergelijking: containerkade aan de oostzijde (voorhaven) en de LNG-plek uit het SO
     oost = []
     for i in range(4):
         y = 297 + 143 * (i + 0.5) / 4
         x = 792 - 0.5 * (y - 297) + 3.0
         oost += [d.P(x - 0.5 * dy, y + dy) for dy in (-12, 0, 12)]
-    lig["Variant: containerkade oostzijde (voorhaven)"] = (oost, [mond], "containers")
-    lig["Variant: LNG-steiger bij de havenmond (SO)"] = ([d.P(905.0 + 0.36 * t, 420.0 - t) for t in (-12, -6, 0, 6, 12)], [mond], "LNG")
-    out = {}
-    for naam, (pts, keten, soort) in lig.items():
-        rij = {}
-        for frm in RICHTINGEN:
-            az = math.radians(frm + 180)
-            rij[frm] = float(kd(pts, keten, (math.sin(az), math.cos(az)), T=T, h=h, wanden=W[len(keten)]).max())
-        kmax = max(rij.values())
-        out[naam] = dict(kd=rij, kd_max=kmax, hs=kmax * HS_BUITEN, grens=GRENS_HS[soort],
-                         voldoet=kmax * HS_BUITEN <= GRENS_HS[soort])
-    return out
+    lig.append(dict(naam="Variant: containerkade oostzijde (voorhaven)", soort="containers", regio="VH", punten=oost,
+                    variant=True))
+    lig.append(dict(naam="Variant: LNG-steiger bij de havenmond (SO)", soort="LNG", regio="VH", variant=True,
+                    punten=[d.P(905.0 + 0.36 * t, 420.0 - t) for t in (-12, -6, 0, 6, 12)]))
 
-
-def kd_veld(d, polygon, richting_van=90.0, stap=40.0, T=8.0, h=15.0):
-    """Kd op een raster binnen 'polygon' (wereld) voor golven uit 'richting_van', alleen door de havenmond."""
-    mond, _, _ = openingen(d)
-    x0, y0, x1, y1 = polygon.bounds
-    xs = np.arange(x0, x1, stap)
-    ys = np.arange(y0, y1, stap)
-    X, Y = np.meshgrid(xs, ys)
-    from shapely import contains_xy
-    m = contains_xy(polygon, X, Y)
-    az = math.radians(richting_van + 180)
-    vals = np.full(X.shape, np.nan)
-    pts = np.column_stack([X[m], Y[m]])
-    vals[m] = kd(pts, [mond], (math.sin(az), math.cos(az)), T=T, h=h)
-    return X, Y, vals
-
-
-def kd_regios(d, richting_van, stap=40.0, T=8.0, h=15.0):
-    """Kd-veld per waterdeel met de juiste reeks openingen: voorhaven (mond), hoofdbekken (mond + ingang),
-    insteekbekkens (mond + ingang + insteek). Geeft lijst (X, Y, Kd) per regio."""
-    from shapely import contains_xy
-    from shapely.ops import unary_union
-    mond, hb, ins = openingen(d)
-    w_vh, w_hb, w_ins = wanden(d)
     def geoms(pred):
         return unary_union([i["geom"] for i in d.items if pred(i)])
     vh = geoms(lambda i: i.get("tag") in ("voorhaven_water", "voorhaven"))
-    hoofd = geoms(lambda i: i["layer"] == "HV-BAGGER" and (i["label"] or "").startswith("Hoofdbekken"))
+    hoofd = geoms(lambda i: i["layer"] == "HV-BAGGER" and (i["label"] or "").startswith("Hoofdbekken")).difference(vh)
     insteek = geoms(lambda i: i["layer"] == "HV-BAGGER" and i.get("tag") == "bekken" and i["phase"] <= 3
-                    and not (i["label"] or "").startswith("Hoofdbekken"))
-    hoofd = hoofd.difference(vh)
-    insteek = insteek.difference(unary_union([vh, hoofd]))
+                    and not (i["label"] or "").startswith("Hoofdbekken")).difference(unary_union([vh, hoofd]))
+    return dict(openingen=[mond, hb, ins], wanden={"VH": w_vh, "HB": w_hb, "INS": w_ins}, ligplaatsen=lig,
+                water={"VH": vh, "HB": hoofd, "INS": insteek})
+
+
+def _keten(model, regio, reflectie=True):
+    n = KETEN[regio]
+    w = [model["wanden"].get(r) if reflectie else None for r in ("VH", "HB", "INS")[:n]]
+    return model["openingen"][:n], w
+
+
+def toets_model(model, T=8.0, h=15.0, reflectie=True):
+    """Golftoets per ligplaats: maximale Kd over de golfrichtingen, Hs = Kd x Hs buiten, tegen de grens per soort."""
+    out = {}
+    for lp in model["ligplaatsen"]:
+        keten, w = _keten(model, lp["regio"], reflectie)
+        rij = {}
+        for frm in RICHTINGEN:
+            az = math.radians(frm + 180)
+            rij[frm] = float(kd(lp["punten"], keten, (math.sin(az), math.cos(az)), T=T, h=h, wanden=w).max())
+        kmax = max(rij.values())
+        out[lp["naam"]] = dict(kd=rij, kd_max=kmax, hs=kmax * HS_BUITEN, grens=GRENS_HS[lp["soort"]],
+                               voldoet=kmax * HS_BUITEN <= GRENS_HS[lp["soort"]], regio=lp["regio"])
+    return out
+
+
+def toets(d, T=8.0, h=15.0, reflectie=True):
+    return toets_model(model_uit_ontwerp(d), T=T, h=h, reflectie=reflectie)
+
+
+def kd_regios_model(model, richting_van, stap=40.0, T=8.0, h=15.0):
+    """Kd-veld per waterdeel met de juiste reeks openingen en wanden. Geeft lijst (X, Y, Kd)."""
+    from shapely import contains_xy
     az = math.radians(richting_van + 180)
     u = (math.sin(az), math.cos(az))
     out = []
-    for poly, keten, w in ((vh, [mond], [w_vh]), (hoofd, [mond, hb], [w_vh, w_hb]), (insteek, [mond, hb, ins], [w_vh, w_hb, w_ins])):
+    for regio in ("VH", "HB", "INS"):
+        poly = model["water"].get(regio)
+        if poly is None or poly.is_empty:
+            continue
+        keten, w = _keten(model, regio)
         x0, y0, x1, y1 = poly.bounds
         X, Y = np.meshgrid(np.arange(x0, x1 + stap, stap), np.arange(y0, y1 + stap, stap))
         m = contains_xy(poly, X, Y)
         vals = np.full(X.shape, np.nan)
-        vals[m] = kd(np.column_stack([X[m], Y[m]]), keten, u, T=T, h=h, wanden=w)
+        if m.any():
+            vals[m] = kd(np.column_stack([X[m], Y[m]]), keten, u, T=T, h=h, wanden=w)
         out.append((X, Y, vals))
     return out
+
+
+def kd_regios(d, richting_van, stap=40.0, T=8.0, h=15.0):
+    return kd_regios_model(model_uit_ontwerp(d), richting_van, stap=stap, T=T, h=h)

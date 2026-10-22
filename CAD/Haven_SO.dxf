@@ -493,7 +493,7 @@ $SKPOLY
   9
 $TDCREATE
  40
-2461336.5735300924
+2461336.591400463
   9
 $TDUCREATE
  40
@@ -501,7 +501,7 @@ $TDUCREATE
   9
 $TDUPDATE
  40
-2461336.5735300924
+2461336.591400463
   9
 $TDUUPDATE
  40
@@ -933,11 +933,11 @@ $PSTYLEMODE
   9
 $FINGERPRINTGUID
   2
-{9CE91EC2-6C14-42A4-8539-6F15BAE94D73}
+{231243D5-58F8-4452-8E55-A944D7D43F21}
   9
 $VERSIONGUID
   2
-{51EFC095-BA88-49EC-85CF-3973F108DDA6}
+{663ED84D-4D4E-4B53-82D0-C88B1F3417AC}
   9
 $EXTNAMES
 290
@@ -1375,9 +1375,9 @@ ISM
   0
 CLASS
   1
-LAYOUT
+ACDBPLACEHOLDER
   2
-AcDbLayout
+AcDbPlaceHolder
   3
 ObjectDBX Classes
  90
@@ -1391,9 +1391,9 @@ ObjectDBX Classes
   0
 CLASS
   1
-ACDBPLACEHOLDER
+LAYOUT
   2
-AcDbPlaceHolder
+AcDbLayout
   3
 ObjectDBX Classes
  90
@@ -2303,284 +2303,6 @@ AcDbSymbolTableRecord
 100
 AcDbLinetypeTableRecord
   2
-RI-HWA_GRES
- 70
-0
-  3
-HWA RIOOL GRES
- 72
-65
- 73
-2
- 40
-13.0
- 49
-10.0
- 74
-0
- 49
--3.0
- 74
-0
-  0
-LTYPE
-  5
-470
-330
-2
-100
-AcDbSymbolTableRecord
-100
-AcDbLinetypeTableRecord
-  2
-XX-HIDDEN
- 70
-0
-  3
-- - - - - - - - - - - - - - - - - - - - - - - -
- 72
-65
- 73
-2
- 40
-4.0
- 49
-2.0
- 74
-0
- 49
--2.0
- 74
-0
-  0
-LTYPE
-  5
-471
-330
-2
-100
-AcDbSymbolTableRecord
-100
-AcDbLinetypeTableRecord
-  2
-RI-HWA_PE
- 70
-0
-  3
-HWA RIOOL PE
- 72
-65
- 73
-2
- 40
-7.8
- 49
-6.0
- 74
-0
- 49
--1.8
- 74
-0
-  0
-LTYPE
-  5
-472
-330
-2
-100
-AcDbSymbolTableRecord
-100
-AcDbLinetypeTableRecord
-  2
-VW-3-9_STREEP
- 70
-0
-  3
- 3-9 STREEP
- 72
-65
- 73
-2
- 40
-12.0
- 49
-3.0
- 74
-0
- 49
--9.0
- 74
-0
-  0
-LTYPE
-  5
-473
-330
-2
-100
-AcDbSymbolTableRecord
-100
-AcDbLinetypeTableRecord
-  2
-VW-FP1-1000
- 70
-0
-  3
- Fietspad 2.70-0.30 STREEP
- 72
-65
- 73
-2
- 40
-3.0
- 49
-2.7
- 74
-0
- 49
--0.3
- 74
-0
-  0
-LTYPE
-  5
-474
-330
-2
-100
-AcDbSymbolTableRecord
-100
-AcDbLinetypeTableRecord
-  2
-VW-3-1_STREEP
- 70
-0
-  3
- 3-1 STREEP
- 72
-65
- 73
-2
- 40
-4.0
- 49
-3.0
- 74
-0
- 49
--1.0
- 74
-0
-  0
-LTYPE
-  5
-475
-330
-2
-100
-AcDbSymbolTableRecord
-100
-AcDbLinetypeTableRecord
-  2
-VW-1-1_STREEP
- 70
-0
-  3
- 1-1 STREEP
- 72
-65
- 73
-2
- 40
-2.0
- 49
-1.0
- 74
-0
- 49
--1.0
- 74
-0
-  0
-LTYPE
-  5
-476
-330
-2
-100
-AcDbSymbolTableRecord
-100
-AcDbLinetypeTableRecord
-  2
-RI-HWA_PVC
- 70
-0
-  3
-HWA RIOOL PVC
- 72
-65
- 73
-2
- 40
-6.4
- 49
-4.0
- 74
-0
- 49
--2.4
- 74
-0
-  0
-LTYPE
-  5
-477
-330
-2
-100
-AcDbSymbolTableRecord
-100
-AcDbLinetypeTableRecord
-  2
-RI-GWA_BETON
- 70
-0
-  3
-GWA RIOOL BETON
- 72
-65
- 73
-4
- 40
-22.0
- 49
-16.0
- 74
-0
- 49
--2.0
- 74
-0
- 49
-2.0
- 74
-0
- 49
--2.0
- 74
-0
-  0
-LTYPE
-  5
-478
-330
-2
-100
-AcDbSymbolTableRecord
-100
-AcDbLinetypeTableRecord
-  2
 BV-GELEIDEBARRIER
  70
 0
@@ -2619,7 +2341,7 @@ GELEIDEBARRIER
   0
 LTYPE
   5
-479
+470
 330
 2
 100
@@ -2627,29 +2349,37 @@ AcDbSymbolTableRecord
 100
 AcDbLinetypeTableRecord
   2
-VW-FP2-1000
+RI-VWA_BETON
  70
 0
   3
- Fietspad 0.30-2.70 STREEP
+VWA RIOOL BETON
  72
 65
  73
-2
+4
  40
-3.0
+19.0
  49
-0.3
+9.0
  74
 0
  49
--2.7
+-5.0
+ 74
+0
+ 49
+0.0
+ 74
+0
+ 49
+-5.0
  74
 0
   0
 LTYPE
   5
-47A
+471
 330
 2
 100
@@ -2657,29 +2387,91 @@ AcDbSymbolTableRecord
 100
 AcDbLinetypeTableRecord
   2
-KW-PVR
+RI-GWA_BETON
  70
 0
   3
-PROFIEL VAN VRIJE RUIMTE
+GWA RIOOL BETON
  72
 65
  73
-2
+4
  40
-7.5
+22.0
+ 49
+16.0
+ 74
+0
+ 49
+-2.0
+ 74
+0
+ 49
+2.0
+ 74
+0
+ 49
+-2.0
+ 74
+0
+  0
+LTYPE
+  5
+472
+330
+2
+100
+AcDbSymbolTableRecord
+100
+AcDbLinetypeTableRecord
+  2
+RI-DRAINAGE
+ 70
+0
+  3
+DRAINAGE LEIDING
+ 72
+65
+ 73
+8
+ 40
+19.2
  49
 6.0
  74
 0
  49
--1.5
+-1.8
+ 74
+0
+ 49
+1.8
+ 74
+0
+ 49
+-1.8
+ 74
+0
+ 49
+2.4
+ 74
+0
+ 49
+-1.8
+ 74
+0
+ 49
+1.8
+ 74
+0
+ 49
+-1.8
  74
 0
   0
 LTYPE
   5
-47B
+473
 330
 2
 100
@@ -2687,19 +2479,49 @@ AcDbSymbolTableRecord
 100
 AcDbLinetypeTableRecord
   2
-VW-1-3_STREEP
+VW-3-9_STREEP
  70
 0
   3
- 1-3 STREEP
+ 3-9 STREEP
  72
 65
  73
 2
  40
-4.0
+12.0
  49
-1.0
+3.0
+ 74
+0
+ 49
+-9.0
+ 74
+0
+  0
+LTYPE
+  5
+474
+330
+2
+100
+AcDbSymbolTableRecord
+100
+AcDbLinetypeTableRecord
+  2
+RI-HWA_GRES
+ 70
+0
+  3
+HWA RIOOL GRES
+ 72
+65
+ 73
+2
+ 40
+13.0
+ 49
+10.0
  74
 0
  49
@@ -2709,7 +2531,7 @@ VW-1-3_STREEP
   0
 LTYPE
   5
-47C
+475
 330
 2
 100
@@ -2717,23 +2539,61 @@ AcDbSymbolTableRecord
 100
 AcDbLinetypeTableRecord
   2
-RI-VWA_GRES
+RI-GWA_PE
  70
 0
   3
-VWA RIOOL GRES
+SWA RIOOL PE
  72
 65
  73
 4
  40
-23.0
+15.55
  49
-11.0
+10.0
  74
 0
  49
--6.0
+-1.65
+ 74
+0
+ 49
+2.25
+ 74
+0
+ 49
+-1.65
+ 74
+0
+  0
+LTYPE
+  5
+476
+330
+2
+100
+AcDbSymbolTableRecord
+100
+AcDbLinetypeTableRecord
+  2
+RI-VWA_PE
+ 70
+0
+  3
+VWA RIOOL PE
+ 72
+65
+ 73
+4
+ 40
+15.0
+ 49
+7.0
+ 74
+0
+ 49
+-4.0
  74
 0
  49
@@ -2741,13 +2601,105 @@ VWA RIOOL GRES
  74
 0
  49
--6.0
+-4.0
  74
 0
   0
 LTYPE
   5
-47D
+477
+330
+2
+100
+AcDbSymbolTableRecord
+100
+AcDbLinetypeTableRecord
+  2
+XX-CENTER
+ 70
+0
+  3
+- ----- - ----- - ----- - ----- - -----
+ 72
+65
+ 73
+4
+ 40
+8.0
+ 49
+5.0
+ 74
+0
+ 49
+-1.0
+ 74
+0
+ 49
+1.0
+ 74
+0
+ 49
+-1.0
+ 74
+0
+  0
+LTYPE
+  5
+478
+330
+2
+100
+AcDbSymbolTableRecord
+100
+AcDbLinetypeTableRecord
+  2
+RI-GWA_PVC
+ 70
+0
+  3
+GWA_RIOOL PVC
+ 72
+65
+ 73
+8
+ 40
+18.45
+ 49
+6.0
+ 74
+0
+ 49
+-1.8
+ 74
+0
+ 49
+1.75
+ 74
+0
+ 49
+-1.8
+ 74
+0
+ 49
+1.75
+ 74
+0
+ 49
+-1.8
+ 74
+0
+ 49
+1.75
+ 74
+0
+ 49
+-1.8
+ 74
+0
+  0
+LTYPE
+  5
+479
 330
 2
 100
@@ -2819,7 +2771,7 @@ P
   0
 LTYPE
   5
-47E
+47A
 330
 2
 100
@@ -2827,113 +2779,29 @@ AcDbSymbolTableRecord
 100
 AcDbLinetypeTableRecord
   2
-RI-HWA_BETON
+KW-PVR
  70
 0
   3
-HWA RIOOL BETON
+PROFIEL VAN VRIJE RUIMTE
  72
 65
  73
 2
  40
-11.4
- 49
-9.0
- 74
-0
- 49
--2.4
- 74
-0
-  0
-LTYPE
-  5
-47F
-330
-2
-100
-AcDbSymbolTableRecord
-100
-AcDbLinetypeTableRecord
-  2
-VW-9-1_STREEP
- 70
-0
-  3
- 9-1 STREEP
- 72
-65
- 73
-2
- 40
-10.0
- 49
-9.0
- 74
-0
- 49
--1.0
- 74
-0
-  0
-LTYPE
-  5
-480
-330
-2
-100
-AcDbSymbolTableRecord
-100
-AcDbLinetypeTableRecord
-  2
-RI-DRAINAGE
- 70
-0
-  3
-DRAINAGE LEIDING
- 72
-65
- 73
-8
- 40
-19.2
+7.5
  49
 6.0
  74
 0
  49
--1.8
- 74
-0
- 49
-1.8
- 74
-0
- 49
--1.8
- 74
-0
- 49
-2.4
- 74
-0
- 49
--1.8
- 74
-0
- 49
-1.8
- 74
-0
- 49
--1.8
+-1.5
  74
 0
   0
 LTYPE
   5
-481
+47B
 330
 2
 100
@@ -2941,37 +2809,67 @@ AcDbSymbolTableRecord
 100
 AcDbLinetypeTableRecord
   2
-AL-NAP_LIJN
+RI-VWA_GRES
  70
 0
   3
-NAP_LIJN
+VWA RIOOL GRES
  72
 65
  73
 4
  40
-15.25
+23.0
  49
-12.0
+11.0
  74
 0
  49
--1.5
+-6.0
  74
 0
  49
-0.25
+0.0
  74
 0
  49
--1.5
+-6.0
  74
 0
   0
 LTYPE
   5
-482
+47C
+330
+2
+100
+AcDbSymbolTableRecord
+100
+AcDbLinetypeTableRecord
+  2
+HIDDEN
+ 70
+0
+  3
+Hidden __ __ __ __ __ __ __ __ __ __ __ __ __ _
+ 72
+65
+ 73
+2
+ 40
+9.524999999999999
+ 49
+6.35
+ 74
+0
+ 49
+-3.175
+ 74
+0
+  0
+LTYPE
+  5
+47D
 330
 2
 100
@@ -3009,7 +2907,7 @@ VWA RIOOL PVC
   0
 LTYPE
   5
-483
+47E
 330
 2
 100
@@ -3017,421 +2915,37 @@ AcDbSymbolTableRecord
 100
 AcDbLinetypeTableRecord
   2
-RI-VWA_BETON
+AL-NAP_LIJN
  70
 0
   3
-VWA RIOOL BETON
+NAP_LIJN
  72
 65
  73
 4
  40
-19.0
+15.25
  49
-9.0
- 74
-0
- 49
--5.0
- 74
-0
- 49
-0.0
- 74
-0
- 49
--5.0
- 74
-0
-  0
-LTYPE
-  5
-484
-330
-2
-100
-AcDbSymbolTableRecord
-100
-AcDbLinetypeTableRecord
-  2
-RI-GWA_PVC
- 70
-0
-  3
-GWA_RIOOL PVC
- 72
-65
- 73
-8
- 40
-18.45
- 49
-6.0
- 74
-0
- 49
--1.8
- 74
-0
- 49
-1.75
- 74
-0
- 49
--1.8
- 74
-0
- 49
-1.75
- 74
-0
- 49
--1.8
- 74
-0
- 49
-1.75
- 74
-0
- 49
--1.8
- 74
-0
-  0
-LTYPE
-  5
-485
-330
-2
-100
-AcDbSymbolTableRecord
-100
-AcDbLinetypeTableRecord
-  2
-VW-9-3_STREEP
- 70
-0
-  3
- 9-3 STREEP
- 72
-65
- 73
-2
- 40
 12.0
- 49
-9.0
  74
 0
  49
--3.0
- 74
-0
-  0
-LTYPE
-  5
-486
-330
-2
-100
-AcDbSymbolTableRecord
-100
-AcDbLinetypeTableRecord
-  2
-RI-GWA_PE
- 70
-0
-  3
-SWA RIOOL PE
- 72
-65
- 73
-4
- 40
-15.55
- 49
-10.0
+-1.5
  74
 0
  49
--1.65
+0.25
  74
 0
  49
-2.25
- 74
-0
- 49
--1.65
+-1.5
  74
 0
   0
 LTYPE
   5
-487
-330
-2
-100
-AcDbSymbolTableRecord
-100
-AcDbLinetypeTableRecord
-  2
-HIDDEN
- 70
-0
-  3
-Hidden __ __ __ __ __ __ __ __ __ __ __ __ __ _
- 72
-65
- 73
-2
- 40
-9.524999999999999
- 49
-6.35
- 74
-0
- 49
--3.175
- 74
-0
-  0
-LTYPE
-  5
-488
-330
-2
-100
-AcDbSymbolTableRecord
-100
-AcDbLinetypeTableRecord
-  2
-AM-AS
- 70
-0
-  3
-AS
- 72
-65
- 73
-4
- 40
-16.0
- 49
-10.0
- 74
-0
- 49
--2.0
- 74
-0
- 49
-2.0
- 74
-0
- 49
--2.0
- 74
-0
-  0
-LTYPE
-  5
-489
-330
-2
-100
-AcDbSymbolTableRecord
-100
-AcDbLinetypeTableRecord
-  2
-VW-3-3_STREEP
- 70
-0
-  3
- 3-3 STREEP
- 72
-65
- 73
-2
- 40
-6.0
- 49
-3.0
- 74
-0
- 49
--3.0
- 74
-0
-  0
-LTYPE
-  5
-48A
-330
-2
-100
-AcDbSymbolTableRecord
-100
-AcDbLinetypeTableRecord
-  2
-RI-GWA_GRES
- 70
-0
-  3
-GWA_RIOOL GRES
- 72
-65
- 73
-4
- 40
-29.5
- 49
-20.0
- 74
-0
- 49
--2.5
- 74
-0
- 49
-4.0
- 74
-0
- 49
--3.0
- 74
-0
-  0
-LTYPE
-  5
-48B
-330
-2
-100
-AcDbSymbolTableRecord
-100
-AcDbLinetypeTableRecord
-  2
-XX-CENTER
- 70
-0
-  3
-- ----- - ----- - ----- - ----- - -----
- 72
-65
- 73
-4
- 40
-8.0
- 49
-5.0
- 74
-0
- 49
--1.0
- 74
-0
- 49
-1.0
- 74
-0
- 49
--1.0
- 74
-0
-  0
-LTYPE
-  5
-48C
-330
-2
-100
-AcDbSymbolTableRecord
-100
-AcDbLinetypeTableRecord
-  2
-XX-HART
- 70
-0
-  3
-__ - __ - __ - __ - __ - __ - __ - __ - __ - __
- 72
-65
- 73
-5
- 40
-13.0
- 49
-4.0
- 74
-0
- 49
--2.0
- 74
-0
- 49
-1.0
- 74
-0
- 49
--2.0
- 74
-0
- 49
-4.0
- 74
-0
-  0
-LTYPE
-  5
-48D
-330
-2
-100
-AcDbSymbolTableRecord
-100
-AcDbLinetypeTableRecord
-  2
-BV-GELEIDERAIL
- 70
-0
-  3
-GELEIDERAIL
- 72
-65
- 73
-3
- 40
-16.0
- 49
-10.0
- 74
-0
- 49
--3.0
- 74
-4
- 75
-108
-340
-1B9
- 46
-1.0
- 50
-0.0
- 44
-0.0
- 45
-0.0
- 49
--3.0
- 74
-0
-  0
-LTYPE
-  5
-48E
+47F
 330
 2
 100
@@ -3477,6 +2991,492 @@ BESCHOEIING
   0
 LTYPE
   5
+480
+330
+2
+100
+AcDbSymbolTableRecord
+100
+AcDbLinetypeTableRecord
+  2
+VW-9-3_STREEP
+ 70
+0
+  3
+ 9-3 STREEP
+ 72
+65
+ 73
+2
+ 40
+12.0
+ 49
+9.0
+ 74
+0
+ 49
+-3.0
+ 74
+0
+  0
+LTYPE
+  5
+481
+330
+2
+100
+AcDbSymbolTableRecord
+100
+AcDbLinetypeTableRecord
+  2
+XX-HART
+ 70
+0
+  3
+__ - __ - __ - __ - __ - __ - __ - __ - __ - __
+ 72
+65
+ 73
+5
+ 40
+13.0
+ 49
+4.0
+ 74
+0
+ 49
+-2.0
+ 74
+0
+ 49
+1.0
+ 74
+0
+ 49
+-2.0
+ 74
+0
+ 49
+4.0
+ 74
+0
+  0
+LTYPE
+  5
+482
+330
+2
+100
+AcDbSymbolTableRecord
+100
+AcDbLinetypeTableRecord
+  2
+VW-1-3_STREEP
+ 70
+0
+  3
+ 1-3 STREEP
+ 72
+65
+ 73
+2
+ 40
+4.0
+ 49
+1.0
+ 74
+0
+ 49
+-3.0
+ 74
+0
+  0
+LTYPE
+  5
+483
+330
+2
+100
+AcDbSymbolTableRecord
+100
+AcDbLinetypeTableRecord
+  2
+VW-3-3_STREEP
+ 70
+0
+  3
+ 3-3 STREEP
+ 72
+65
+ 73
+2
+ 40
+6.0
+ 49
+3.0
+ 74
+0
+ 49
+-3.0
+ 74
+0
+  0
+LTYPE
+  5
+484
+330
+2
+100
+AcDbSymbolTableRecord
+100
+AcDbLinetypeTableRecord
+  2
+RI-HWA_PVC
+ 70
+0
+  3
+HWA RIOOL PVC
+ 72
+65
+ 73
+2
+ 40
+6.4
+ 49
+4.0
+ 74
+0
+ 49
+-2.4
+ 74
+0
+  0
+LTYPE
+  5
+485
+330
+2
+100
+AcDbSymbolTableRecord
+100
+AcDbLinetypeTableRecord
+  2
+AM-AS
+ 70
+0
+  3
+AS
+ 72
+65
+ 73
+4
+ 40
+16.0
+ 49
+10.0
+ 74
+0
+ 49
+-2.0
+ 74
+0
+ 49
+2.0
+ 74
+0
+ 49
+-2.0
+ 74
+0
+  0
+LTYPE
+  5
+486
+330
+2
+100
+AcDbSymbolTableRecord
+100
+AcDbLinetypeTableRecord
+  2
+VW-FP1-1000
+ 70
+0
+  3
+ Fietspad 2.70-0.30 STREEP
+ 72
+65
+ 73
+2
+ 40
+3.0
+ 49
+2.7
+ 74
+0
+ 49
+-0.3
+ 74
+0
+  0
+LTYPE
+  5
+487
+330
+2
+100
+AcDbSymbolTableRecord
+100
+AcDbLinetypeTableRecord
+  2
+VW-3-1_STREEP
+ 70
+0
+  3
+ 3-1 STREEP
+ 72
+65
+ 73
+2
+ 40
+4.0
+ 49
+3.0
+ 74
+0
+ 49
+-1.0
+ 74
+0
+  0
+LTYPE
+  5
+488
+330
+2
+100
+AcDbSymbolTableRecord
+100
+AcDbLinetypeTableRecord
+  2
+VW-9-1_STREEP
+ 70
+0
+  3
+ 9-1 STREEP
+ 72
+65
+ 73
+2
+ 40
+10.0
+ 49
+9.0
+ 74
+0
+ 49
+-1.0
+ 74
+0
+  0
+LTYPE
+  5
+489
+330
+2
+100
+AcDbSymbolTableRecord
+100
+AcDbLinetypeTableRecord
+  2
+RI-HWA_PE
+ 70
+0
+  3
+HWA RIOOL PE
+ 72
+65
+ 73
+2
+ 40
+7.8
+ 49
+6.0
+ 74
+0
+ 49
+-1.8
+ 74
+0
+  0
+LTYPE
+  5
+48A
+330
+2
+100
+AcDbSymbolTableRecord
+100
+AcDbLinetypeTableRecord
+  2
+XX-HIDDEN
+ 70
+0
+  3
+- - - - - - - - - - - - - - - - - - - - - - - -
+ 72
+65
+ 73
+2
+ 40
+4.0
+ 49
+2.0
+ 74
+0
+ 49
+-2.0
+ 74
+0
+  0
+LTYPE
+  5
+48B
+330
+2
+100
+AcDbSymbolTableRecord
+100
+AcDbLinetypeTableRecord
+  2
+BV-GELEIDERAIL
+ 70
+0
+  3
+GELEIDERAIL
+ 72
+65
+ 73
+3
+ 40
+16.0
+ 49
+10.0
+ 74
+0
+ 49
+-3.0
+ 74
+4
+ 75
+108
+340
+1B9
+ 46
+1.0
+ 50
+0.0
+ 44
+0.0
+ 45
+0.0
+ 49
+-3.0
+ 74
+0
+  0
+LTYPE
+  5
+48C
+330
+2
+100
+AcDbSymbolTableRecord
+100
+AcDbLinetypeTableRecord
+  2
+VW-1-1_STREEP
+ 70
+0
+  3
+ 1-1 STREEP
+ 72
+65
+ 73
+2
+ 40
+2.0
+ 49
+1.0
+ 74
+0
+ 49
+-1.0
+ 74
+0
+  0
+LTYPE
+  5
+48D
+330
+2
+100
+AcDbSymbolTableRecord
+100
+AcDbLinetypeTableRecord
+  2
+RI-HWA_BETON
+ 70
+0
+  3
+HWA RIOOL BETON
+ 72
+65
+ 73
+2
+ 40
+11.4
+ 49
+9.0
+ 74
+0
+ 49
+-2.4
+ 74
+0
+  0
+LTYPE
+  5
+48E
+330
+2
+100
+AcDbSymbolTableRecord
+100
+AcDbLinetypeTableRecord
+  2
+VW-FP2-1000
+ 70
+0
+  3
+ Fietspad 0.30-2.70 STREEP
+ 72
+65
+ 73
+2
+ 40
+3.0
+ 49
+0.3
+ 74
+0
+ 49
+-2.7
+ 74
+0
+  0
+LTYPE
+  5
 48F
 330
 2
@@ -3485,31 +3485,31 @@ AcDbSymbolTableRecord
 100
 AcDbLinetypeTableRecord
   2
-RI-VWA_PE
+RI-GWA_GRES
  70
 0
   3
-VWA RIOOL PE
+GWA_RIOOL GRES
  72
 65
  73
 4
  40
-15.0
+29.5
  49
-7.0
+20.0
  74
 0
  49
--4.0
+-2.5
  74
 0
  49
-0.0
+4.0
  74
 0
  49
--4.0
+-3.0
  74
 0
   0
@@ -120981,7 +120981,7 @@ DictionaryVariables
 280
 0
   1
-1.4.5 @ 2026-10-22T13:45:53.360794+00:00
+1.4.5 @ 2026-10-22T14:11:37.389832+00:00
   0
 VISUALSTYLE
   5
@@ -127799,7 +127799,7 @@ DictionaryVariables
 280
 0
   1
-1.4.5 @ 2026-10-22T13:45:53.567548+00:00
+1.4.5 @ 2026-10-22T14:11:37.595151+00:00
   0
 ENDSEC
   0

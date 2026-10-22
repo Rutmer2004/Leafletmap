@@ -85,6 +85,8 @@ def write_dxf(d, path, coast):
 
     # teksten en maatvoering: dezelfde plaatsing als op de PDF-bladen, per blad op een eigen laag
     _teksten_model(doc, msp, d)
+    if d.code == "DO":
+        toets_lagen(doc, msp, d)
 
     # ankerpunten met coördinaat
     doc.layers.add("HV-ANKERPUNT-TEKST", color=1).description = "Ankerpuntcoördinaten (alleen modelspace)"
@@ -125,6 +127,38 @@ def _ongebruikte_lagen_weg(doc):
     for l in list(doc.layers):
         if l.dxf.name not in gebruikt and not l.dxf.name.startswith(("HV-", "X-XX-AL-T")):
             doc.layers.remove(l.dxf.name)
+
+
+TOETS_KLEUR = {"OPENING": 6, "WAND": 30, "LIGPLAATS": 4}
+TOETS_UITLEG = (
+    "Invoer golftoets (src/toets_dxf.py). Verschuif deze lijnen mee als je dammen, kades of ligplaatsen aanpast. "
+    "OPENING-1/2/3 = havenmond, ingang hoofdbekken, ingang insteek (tussen de wanden, van zee naar binnen). "
+    "WAND-<VH|HB|INS>-<KADE|OPEN|TALUD> = reflecterende wand in voorhaven/hoofdbekken/insteek; "
+    "Cr kademuur 0,9, open kade op palen 0,45, stortsteen/talud 0,4. "
+    "LIGPLAATS-<CONTAINERS|GRAAN|RORO|LNG> = hartlijn van het afgemeerde schip.")
+
+
+def toets_lagen(doc, msp, d):
+    """Invoerlijnen voor de golftoets in modelspace (lagen HV-TOETS-*), zodat de toets op een aangepaste DXF kan."""
+    import golven
+    m = golven.model_uit_ontwerp(d)
+
+    def laag(naam, soort):
+        if naam not in doc.layers:
+            doc.layers.add(naam, color=TOETS_KLEUR[soort]).description = TOETS_UITLEG
+        return naam
+
+    for nr, (opening, (p1, p2)) in enumerate(zip(("MOND", "HOOFDBEKKEN", "INSTEEK"), m["openingen"]), 1):
+        msp.add_line(p1, p2, dxfattribs={"layer": laag(f"HV-TOETS-OPENING-{nr}-{opening}", "OPENING")})
+    type_van = {v: k for k, v in golven.WANDTYPE.items()}
+    for regio, ws in m["wanden"].items():
+        for p1, p2, cr in ws:
+            msp.add_line(p1, p2, dxfattribs={"layer": laag(f"HV-TOETS-WAND-{regio}-{type_van[cr]}", "WAND")})
+    for lp in m["ligplaatsen"]:
+        if lp.get("variant"):
+            continue
+        for a, b in lp["lijnen"]:
+            msp.add_line(a, b, dxfattribs={"layer": laag(f"HV-TOETS-LIGPLAATS-{lp['soort'].upper()}", "LIGPLAATS")})
 
 
 def _template(doc):
@@ -212,6 +246,7 @@ def _layout(doc, d, blad, naam, center, scale):
     vp.frozen_layers = [l.dxf.name for l in doc.layers
                         if (l.dxf.name.startswith("HV-TEKST-") and l.dxf.name != f"HV-TEKST-{blad}")
                         or l.dxf.name in ("HV-ANKERPUNT-TEKST", "HV-RASTER", "HV-TEKST", "HV-MAAT", "HV-D-TEKST")
+                        or l.dxf.name.startswith(("HV-TOETS-", "HV-GOLF-"))
                         or (blad == "02" and l.dxf.name.startswith("HV-D-"))]
     # noordpijl en schaalstok
     nb = Ann.noordvak(Ann.MAP).bounds

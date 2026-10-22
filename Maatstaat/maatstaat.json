@@ -1612,7 +1612,8 @@
      "kd_max": 0.09719846801610409,
      "hs": 0.24299617004026022,
      "grens": 0.5,
-     "voldoet": true
+     "voldoet": true,
+     "regio": "INS"
     },
     "Graan (open kade, noordkade hoofdbekken)": {
      "kd": {
@@ -1626,7 +1627,8 @@
      "kd_max": 0.3836232724788343,
      "hs": 0.9590581811970857,
      "grens": 1.0,
-     "voldoet": true
+     "voldoet": true,
+     "regio": "HB"
     },
     "RoRo (insteek, vinger 7/8)": {
      "kd": {
@@ -1640,7 +1642,8 @@
      "kd_max": 0.06996173928507166,
      "hs": 0.17490434821267914,
      "grens": 0.3,
-     "voldoet": true
+     "voldoet": true,
+     "regio": "INS"
     },
     "LNG (achter zuidelijke dam)": {
      "kd": {
@@ -1654,7 +1657,8 @@
      "kd_max": 0.3905156491709111,
      "hs": 0.9762891229272777,
      "grens": 1.0,
-     "voldoet": true
+     "voldoet": true,
+     "regio": "VH"
     },
     "Variant: containerkade oostzijde (voorhaven)": {
      "kd": {
@@ -1668,7 +1672,8 @@
      "kd_max": 0.8317085969151633,
      "hs": 2.079271492287908,
      "grens": 0.5,
-     "voldoet": false
+     "voldoet": false,
+     "regio": "VH"
     },
     "Variant: LNG-steiger bij de havenmond (SO)": {
      "kd": {
@@ -1682,7 +1687,8 @@
      "kd_max": 0.7921391496259585,
      "hs": 1.9803478740648963,
      "grens": 1.0,
-     "voldoet": false
+     "voldoet": false,
+     "regio": "VH"
     }
    },
    "geul_15": 17250.0

@@ -29,6 +29,21 @@ langs de maatlijn (nooit op de kop), met een verwijslijn als er in het vlak geen
 (1,8 / 2,5 / 3,5 mm op papier). In de DXF staan de teksten per blad op een eigen laag (`HV-TEKST-02`, `-06`, `-07`,
 `-08`); in elke layout zijn de teksten van de andere bladen bevroren.
 
+## Golftoets op een aangepaste DXF
+
+`Haven_DO.dxf` bevat de invoer voor de golftoets op lagen `HV-TOETS-*` (in de layouts bevroren):
+`HV-TOETS-OPENING-1-MOND`, `-2-HOOFDBEKKEN`, `-3-INSTEEK` (openingen van zee naar binnen),
+`HV-TOETS-WAND-<VH|HB|INS>-<KADE|OPEN|TALUD>` (reflecterende wanden; Cr 0,9 / 0,45 / 0,4) en
+`HV-TOETS-LIGPLAATS-<CONTAINERS|GRAAN|RORO|LNG>` (hartlijn van elk schip). Verschuif deze lijnen mee als je in
+Civil 3D dammen, kades of ligplaatsen aanpast, sla op als DXF en draai:
+
+```
+python3 src/toets_dxf.py CAD/Haven_DO.dxf
+```
+
+Uitvoer naast de DXF: `<naam>_golftoets.pdf` (tabel en kleurenkaart) en `<naam>_met_golftoets.dxf`
+(golfhoogte-contouren 0,3 / 0,5 / 1,0 / 1,5 / 2,0 m op lagen `HV-GOLF-HS-112_5` en `HV-GOLF-HS-45_0`).
+
 ## DWG maken in Civil 3D
 
 1. Kopieer de map `CAD` inclusief `Ondergrond` (de luchtfoto is met een relatief pad gekoppeld).
