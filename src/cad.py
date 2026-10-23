@@ -14,6 +14,15 @@ TEMPLATE = os.path.join(H.ROOT, "Referentie", "NHL_template_onderdelen.dxf")
 STIJL = "NLCS-ISO"
 
 
+def arceerkleur(laag):
+    """(ACI, RGB) voor de arcering van een laag: dezelfde kleur als op de PDF-bladen (plot niet zwart)."""
+    aci, hexkleur, _, _ = H.LAYERS[laag]
+    if laag == "HV-RESERVE":
+        hexkleur = "#6c757d"
+    h = hexkleur.lstrip("#")
+    return aci, (int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16))
+
+
 def _rings(g):
     if g.geom_type == "Polygon":
         return [list(g.exterior.coords)] + [list(r.coords) for r in g.interiors]
@@ -87,7 +96,11 @@ def write_dxf(d, path, coast):
                 msp.add_lwpolyline(r, close=True, dxfattribs=at)
             if H.LAYERS[lay][2] and lay not in ("HV-BAGGER",):
                 hatch = msp.add_hatch(color=H.LAYERS[lay][0], dxfattribs={"layer": lay})
-                hatch.set_pattern_fill("ANSI31", scale=40.0) if lay == "HV-RESERVE" else hatch.set_solid_fill()
+                aci, rgb = arceerkleur(lay)
+                if lay == "HV-RESERVE":
+                    hatch.set_pattern_fill("ANSI31", color=aci, scale=40.0)
+                else:
+                    hatch.set_solid_fill(color=aci, rgb=rgb)   # let op: set_solid_fill() zet anders kleur 7
                 if lay != "HV-RESERVE":
                     hatch.transparency = 0.6
                 for i, r in enumerate(_rings(g)):
@@ -351,6 +364,7 @@ def _layout(doc, d, blad, naam, center, scale):
         lay.add_lwpolyline(box_, close=True, dxfattribs={"color": aci, "layer": "X-XX-AL-TEKENBLAD_LEGENDA-S"})
         if fill:
             hh = lay.add_hatch(color=aci, dxfattribs={"layer": "X-XX-AL-TEKENBLAD_LEGENDA-S"})
+            hh.set_solid_fill(color=aci, rgb=arceerkleur(name)[1])
             hh.paths.add_polyline_path(box_)
         lay.add_text(desc, height=1.8, dxfattribs={"layer": "X-XX-AL-TEKENBLAD_LEGENDA-S", "style": STIJL}) \
             .set_placement((lx + 18, yy - 2), align=TextEntityAlignment.MIDDLE_LEFT)
