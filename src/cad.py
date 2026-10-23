@@ -14,6 +14,30 @@ TEMPLATE = os.path.join(H.ROOT, "Referentie", "NHL_template_onderdelen.dxf")
 STIJL = "NLCS-ISO"
 
 
+def plotinstellingen(doc, lay):
+    """Paginainstelling zodat 'Plot' direct goed is: DWG To PDF, ISO full bleed A1, 1:1, plotstijl acad.ctb
+    (kleuren blijven), lijndiktes en transparantie plotten. Laat viewports en inhoud ongemoeid."""
+    dl = lay.dxf_layout
+    dl.dxf.plot_configuration_file = "DWG To PDF.pc3"
+    dl.dxf.paper_size = "ISO_full_bleed_A1_(841.00_x_594.00_MM)"
+    dl.dxf.plot_view_name = ""
+    for k in ("left_margin", "bottom_margin", "right_margin", "top_margin"):
+        dl.dxf.set(k, 0.0)
+    dl.dxf.paper_width, dl.dxf.paper_height = 841.0, 594.0
+    dl.dxf.plot_origin_x_offset, dl.dxf.plot_origin_y_offset = 0.0, 0.0
+    dl.dxf.plot_paper_units = 1          # mm
+    dl.dxf.plot_rotation = 0
+    dl.dxf.plot_type = 5                 # layout
+    dl.dxf.standard_scale_type = 16      # 1:1
+    dl.dxf.scale_numerator, dl.dxf.scale_denominator = 1.0, 1.0
+    dl.dxf.current_style_sheet = "acad.ctb"
+    vlaggen = 2 | 32 | 128 | 512 | 16    # plotstijlen tonen en gebruiken, lijndiktes, viewports eerst, standaardschaal
+    dl.dxf.plot_layout_flags = vlaggen
+    if "PLOTTRANSPARENCY" not in doc.appids:
+        doc.appids.new("PLOTTRANSPARENCY")
+    dl.set_xdata("PLOTTRANSPARENCY", [(1071, 1)])
+
+
 def arceerkleur(laag):
     """(ACI, RGB) voor de arcering van een laag: dezelfde kleur als op de PDF-bladen (plot niet zwart)."""
     aci, hexkleur, _, _ = H.LAYERS[laag]
@@ -281,7 +305,8 @@ def _layout(doc, d, blad, naam, center, scale):
     import sheets as S
     van = 3 if d.code == "SO" else 10
     lay = doc.layouts.new(f"{d.code}-{blad} {naam} 1-{scale}".replace(",", ""))
-    lay.page_setup(size=(841, 594), margins=(0, 0, 0, 0), units="mm")
+    lay.page_setup(size=(841, 594), margins=(0, 0, 0, 0), units="mm", name="ISO_full_bleed_A1", device="DWG To PDF.pc3")
+    plotinstellingen(doc, lay)
     schaal = f"1:{scale:,}".replace(",", ".")
     lay.add_blockref("SAL-TEKENBLAD_A1-SO", (0, 0), dxfattribs={"layer": "X-XX-AL-TEKENBLAD-S"})
     tb = lay.add_blockref("TITELBLOK_NHL", (831, 10), dxfattribs={"layer": "X-XX-AL-TEKENBLAD_TITELBLOK-G"})
