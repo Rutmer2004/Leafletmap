@@ -1,0 +1,1013 @@
+<title>Koersradar</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: phone-first single column; from 980px a sticky input rail left and the trade plan right.
+   The signal card leads, then "your three actions", then the evidence behind them. */
+:root {
+  --bg: #eef1f4;
+  --surface: #ffffff;
+  --surface-2: #e5eaef;
+  --ink: #141b24;
+  --muted: #586474;
+  --line: #d2d9e1;
+  --accent: #a96400;
+  --accent-ink: #ffffff;
+  --accent-soft: #f6e6cc;
+  --long: #0f7a57;
+  --long-bg: #daf1e6;
+  --short: #bf3434;
+  --short-bg: #f8e0df;
+  --wait: #806400;
+  --wait-bg: #f4ebc6;
+  --shadow: 0 1px 2px rgba(20, 27, 36, .06), 0 6px 20px rgba(20, 27, 36, .05);
+
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Instrument Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-data: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  --r: 14px;
+  --r-sm: 9px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e131a; --surface: #151c25; --surface-2: #1d2631; --ink: #e6ecf2; --muted: #93a0b0; --line: #283340;
+    --accent: #f0a630; --accent-ink: #1b1206; --accent-soft: #3a2a10;
+    --long: #3bcf90; --long-bg: #11342a; --short: #ff6f6f; --short-bg: #3a1a1d; --wait: #e8c45a; --wait-bg: #383015;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px rgba(0, 0, 0, .25);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e131a; --surface: #151c25; --surface-2: #1d2631; --ink: #e6ecf2; --muted: #93a0b0; --line: #283340;
+  --accent: #f0a630; --accent-ink: #1b1206; --accent-soft: #3a2a10;
+  --long: #3bcf90; --long-bg: #11342a; --short: #ff6f6f; --short-bg: #3a1a1d; --wait: #e8c45a; --wait-bg: #383015;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px rgba(0, 0, 0, .25);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--font-body); font-size: 15px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 18px 48px;
+}
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; line-height: 1.15; }
+h2 { font-size: 17px; font-weight: 600; }
+p { margin: 0; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.mono { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+.label { font-size: 11.5px; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+
+.app { max-width: 1240px; margin: 0 auto; display: grid; gap: 18px; }
+header.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand svg { width: 34px; height: 34px; flex: none; }
+.brand h1 { font-size: 24px; font-weight: 800; letter-spacing: -.01em; }
+.brand p { font-size: 13px; color: var(--muted); }
+.status { font-size: 12.5px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.dot.on { background: var(--long); }
+.dot.off { background: var(--short); }
+
+.cols { display: grid; gap: 18px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 980px) {
+  .cols { grid-template-columns: 370px minmax(0, 1fr); align-items: start; }
+  .rail { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); }
+}
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--shadow); padding: 16px; display: grid; gap: 14px; min-width: 0; align-content: start; }
+.rail { display: grid; gap: 14px; }
+
+/* Upload */
+.drop {
+  border: 1.5px dashed var(--line); border-radius: var(--r-sm); padding: 18px 14px; text-align: center;
+  display: grid; gap: 8px; justify-items: center; background: var(--surface-2); transition: border-color .15s, background .15s;
+}
+.drop.over { border-color: var(--accent); background: var(--accent-soft); }
+.drop svg { width: 30px; height: 30px; color: var(--accent); }
+.drop strong { font-size: 15px; }
+.drop small { color: var(--muted); font-size: 12.5px; }
+.thumbs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.thumb { position: relative; border-radius: 8px; overflow: hidden; border: 1px solid var(--line); aspect-ratio: 4 / 3; background: var(--surface-2); max-width: 100%; }
+.thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.thumb button { position: absolute; top: 4px; right: 4px; width: 24px; height: 24px; border-radius: 50%; border: 0; background: var(--surface); color: var(--ink); font-size: 14px; line-height: 24px; padding: 0; box-shadow: var(--shadow); }
+
+.field { display: grid; gap: 5px; min-width: 0; }
+.field label { font-size: 13px; font-weight: 600; }
+.field .hint { font-size: 12px; color: var(--muted); }
+.row2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+input[type="number"], input[type="text"], select, textarea {
+  width: 100%; border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 9px 10px; min-width: 0;
+}
+textarea { resize: vertical; min-height: 64px; }
+.seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; background: var(--surface-2); border-radius: 9px; padding: 3px; gap: 3px; }
+.seg button { border: 0; background: transparent; padding: 7px 4px; border-radius: 7px; font-size: 13px; font-weight: 600; color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 9px 14px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-size: 16px; padding: 13px 16px; width: 100%; }
+.btn.primary:disabled { opacity: .5; cursor: not-allowed; }
+.btn.small { padding: 5px 10px; font-size: 13px; border-radius: 8px; }
+.btn.ghost { background: transparent; }
+.msg { font-size: 13px; border-radius: 8px; padding: 9px 11px; background: var(--surface-2); }
+.msg.err { background: var(--short-bg); color: var(--short); }
+
+/* Results */
+.results { display: grid; gap: 16px; min-width: 0; }
+.example-tag { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; color: var(--wait); background: var(--wait-bg); padding: 4px 10px; border-radius: 999px; justify-self: start; }
+
+.signal { border-radius: var(--r); padding: 18px; display: grid; gap: 14px; border: 1px solid var(--line); background: var(--surface); box-shadow: var(--shadow); position: relative; overflow: hidden; }
+.signal::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 6px; background: var(--tone); }
+.signal { --tone: var(--wait); --tone-bg: var(--wait-bg); }
+.signal.long { --tone: var(--long); --tone-bg: var(--long-bg); }
+.signal.short { --tone: var(--short); --tone-bg: var(--short-bg); }
+.sig-head { display: flex; justify-content: space-between; gap: 14px; flex-wrap: wrap; align-items: flex-start; }
+.sig-action { display: flex; align-items: center; gap: 12px; }
+.sig-action .big { font-family: var(--font-display); font-weight: 800; font-size: clamp(34px, 7vw, 50px); line-height: 1; color: var(--tone); letter-spacing: -.02em; }
+.sig-action svg { width: 40px; height: 40px; color: var(--tone); flex: none; }
+.sig-meta { display: grid; gap: 3px; text-align: right; }
+.sig-meta .asset { font-family: var(--font-display); font-weight: 600; font-size: 20px; }
+.sig-why { font-size: 15.5px; max-width: 68ch; }
+.gauges { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.gauge { background: var(--surface-2); border-radius: 10px; padding: 10px 12px; display: grid; gap: 6px; }
+.gauge .val { font-family: var(--font-data); font-weight: 700; font-size: 19px; }
+.bar { height: 6px; background: var(--line); border-radius: 99px; overflow: hidden; }
+.bar > i { display: block; height: 100%; background: var(--tone); border-radius: 99px; }
+.grade { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 8px; font-family: var(--font-display); font-weight: 800; font-size: 18px; background: var(--tone-bg); color: var(--tone); }
+
+.steps { display: grid; gap: 10px; }
+.step { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 12px; border-radius: 11px; background: var(--surface-2); }
+.step .n { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-family: var(--font-display); background: var(--surface); border: 1px solid var(--line); }
+.step .what { display: grid; gap: 2px; min-width: 0; }
+.step .what strong { font-size: 15px; }
+.step .what span { font-size: 13px; color: var(--muted); }
+.step .price { font-family: var(--font-data); font-weight: 700; font-size: 18px; text-align: right; }
+.step.sl .price { color: var(--short); }
+.step.tp .price { color: var(--long); }
+.step.entry .price { color: var(--accent); }
+.tp-list { display: grid; gap: 6px; justify-items: end; }
+.tp-list div { display: flex; gap: 8px; align-items: baseline; }
+@media (max-width: 560px) {
+  .step { grid-template-columns: 34px minmax(0, 1fr); }
+  .step > .tp-list { grid-column: 1 / -1; justify-items: start; padding-left: 46px; }
+  .step .price { text-align: left; }
+}
+.tp-list small { font-family: var(--font-body); font-weight: 500; font-size: 12px; color: var(--muted); }
+.copy { border: 1px solid var(--line); background: var(--surface); border-radius: 6px; font-size: 11.5px; padding: 2px 7px; color: var(--muted); }
+
+.size { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+.kv { display: grid; gap: 2px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; }
+.kv b { font-family: var(--font-data); font-size: 16px; }
+.warn { font-size: 13px; color: var(--short); background: var(--short-bg); padding: 8px 11px; border-radius: 8px; }
+.ok { font-size: 13px; color: var(--long); background: var(--long-bg); padding: 8px 11px; border-radius: 8px; }
+
+.two { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 760px) { .two { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+.ladder-wrap { overflow-x: auto; }
+.ladder text { font-family: var(--font-data); font-size: 11px; fill: var(--ink); }
+.ladder .lbl { font-family: var(--font-body); font-size: 11px; fill: var(--muted); }
+.ladder .axis { stroke: var(--line); }
+.ladder .l-entry { stroke: var(--accent); }
+.ladder .l-sl { stroke: var(--short); }
+.ladder .l-tp { stroke: var(--long); }
+.ladder .l-lvl { stroke: var(--muted); stroke-dasharray: 3 4; }
+.ladder .z-risk { fill: var(--short-bg); }
+.ladder .z-reward { fill: var(--long-bg); }
+
+table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+th { text-align: left; font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 600; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+td { padding: 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+td.num, th.num { text-align: right; font-family: var(--font-data); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.table-wrap { overflow-x: auto; }
+
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+.tile { background: var(--surface-2); border-radius: 10px; padding: 10px 12px; display: grid; gap: 3px; }
+.tile .v { font-weight: 700; font-size: 16px; }
+.tile small { color: var(--muted); font-size: 12px; line-height: 1.35; }
+.bull { color: var(--long); }
+.bear { color: var(--short); }
+.neutral { color: var(--wait); }
+
+.pill { display: inline-block; font-size: 11.5px; font-weight: 600; padding: 2px 8px; border-radius: 99px; background: var(--surface-2); color: var(--muted); white-space: nowrap; }
+.pill.bull { background: var(--long-bg); color: var(--long); }
+.pill.bear { background: var(--short-bg); color: var(--short); }
+.pill.neutral { background: var(--wait-bg); color: var(--wait); }
+
+.checks { display: grid; gap: 6px; list-style: none; margin: 0; padding: 0; }
+.checks li { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 8px; align-items: start; padding: 7px 0; border-bottom: 1px solid var(--line); }
+.checks li:last-child { border-bottom: 0; }
+.mark { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700; }
+.mark.y { background: var(--long-bg); color: var(--long); }
+.mark.n { background: var(--short-bg); color: var(--short); }
+.mark.m { background: var(--wait-bg); color: var(--wait); }
+.checks small { display: block; color: var(--muted); font-size: 12.5px; }
+
+details { border: 1px solid var(--line); border-radius: 10px; padding: 0 12px; }
+details + details { margin-top: 8px; }
+summary { cursor: pointer; padding: 11px 0; font-weight: 600; display: flex; justify-content: space-between; gap: 10px; align-items: center; list-style: none; }
+summary::-webkit-details-marker { display: none; }
+summary::after { content: "+"; color: var(--muted); font-weight: 400; font-size: 18px; }
+details[open] summary::after { content: "–"; }
+details > div { padding-bottom: 12px; font-size: 14px; display: grid; gap: 6px; }
+
+ol.plain, ul.plain { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+.scen { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.scen > div { border-radius: 10px; padding: 12px; display: grid; gap: 6px; background: var(--surface-2); }
+.prob { font-family: var(--font-data); font-weight: 700; }
+
+.chart-img { border-radius: 10px; border: 1px solid var(--line); max-width: 100%; display: block; }
+
+/* Coach chat */
+.chat { display: grid; gap: 10px; }
+.bubbles { display: grid; gap: 8px; max-height: 420px; overflow-y: auto; }
+.bubble { padding: 10px 12px; border-radius: 12px; max-width: 88%; white-space: pre-wrap; font-size: 14px; }
+.bubble.me { background: var(--accent-soft); justify-self: end; }
+.bubble.ai { background: var(--surface-2); justify-self: start; }
+.ask { display: flex; gap: 8px; }
+.ask input { flex: 1; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips button { border: 1px solid var(--line); background: var(--surface); border-radius: 99px; padding: 5px 11px; font-size: 13px; }
+
+.history { display: grid; gap: 8px; }
+.hist { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 10px; align-items: center; border: 1px solid var(--line); border-radius: 10px; padding: 6px; background: var(--surface); text-align: left; }
+.hist img, .hist .ph { width: 52px; height: 38px; object-fit: cover; border-radius: 6px; background: var(--surface-2); display: block; }
+.hist b { font-size: 13.5px; }
+.hist small { display: block; color: var(--muted); font-size: 12px; }
+
+.loading { display: grid; gap: 10px; }
+.loading ol { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.loading li { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; background: var(--surface-2); color: var(--muted); }
+.loading li.done { color: var(--ink); }
+.loading li.active { color: var(--ink); outline: 1px solid var(--accent); }
+.spin { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--line); border-top-color: var(--accent); animation: sp 0.9s linear infinite; flex: none; }
+.tick { width: 16px; height: 16px; border-radius: 50%; background: var(--long); flex: none; }
+.idle { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--line); flex: none; }
+@keyframes sp { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spin { animation: none; } }
+
+.foot { font-size: 12px; color: var(--muted); text-align: center; max-width: 70ch; margin: 0 auto; }
+</style>
+
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <svg viewBox="0 0 34 34" aria-hidden="true">
+        <rect x="1" y="1" width="32" height="32" rx="9" fill="var(--accent)"></rect>
+        <path d="M8 23 L13 17 L17 20 L25 10" stroke="var(--accent-ink)" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"></path>
+        <circle cx="25" cy="10" r="2.6" fill="var(--accent-ink)"></circle>
+      </svg>
+      <div>
+        <h1>Koersradar</h1>
+        <p>Screenshot erin, compleet tradeplan eruit</p>
+      </div>
+    </div>
+    <div class="status" id="status"><span class="dot" id="statusDot"></span><span id="statusText">Verbinden met Claude…</span></div>
+  </header>
+
+  <div class="cols">
+    <aside class="rail">
+      <section class="panel" aria-labelledby="upTitle">
+        <h2 id="upTitle">1. Je grafiek</h2>
+        <label class="drop" id="drop" for="file">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"></rect><path d="M7 15l3-3 3 2 4-5"></path></svg>
+          <strong>Kies of sleep een screenshot</strong>
+          <small>Of plak er een (Ctrl/Cmd + V). Tot 3 stuks, bijvoorbeeld 1D, 4H en 15m van hetzelfde aandeel of coin voor een betere analyse.</small>
+          <input type="file" id="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple hidden>
+        </label>
+        <div class="thumbs" id="thumbs" hidden></div>
+      </section>
+
+      <section class="panel" aria-labelledby="setTitle">
+        <h2 id="setTitle">2. Jouw instellingen</h2>
+        <div class="row2">
+          <div class="field">
+            <label for="account">Rekening (€)</label>
+            <input type="number" id="account" min="0" step="50" value="1000" inputmode="decimal">
+          </div>
+          <div class="field">
+            <label for="risk">Risico per trade (%)</label>
+            <input type="number" id="risk" min="0.1" max="10" step="0.1" value="1" inputmode="decimal">
+          </div>
+        </div>
+        <div class="field">
+          <span class="hint" id="riskHint">Je verliest maximaal €10 als je stop loss geraakt wordt.</span>
+        </div>
+        <div class="field">
+          <label>Stijl</label>
+          <div class="seg" id="style" role="group" aria-label="Tradingstijl">
+            <button type="button" data-v="scalp" aria-pressed="false">Scalp</button>
+            <button type="button" data-v="day" aria-pressed="true">Daytrade</button>
+            <button type="button" data-v="swing" aria-pressed="false">Swing</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>Richting</label>
+          <div class="seg" id="dir" role="group" aria-label="Toegestane richting">
+            <button type="button" data-v="both" aria-pressed="true">Long + short</button>
+            <button type="button" data-v="long" aria-pressed="false">Alleen long</button>
+          </div>
+          <span class="hint">Kies "alleen long" als je alleen gewoon koopt (spot, geen shorten).</span>
+        </div>
+        <div class="field">
+          <label for="notes">Extra info (optioneel)</label>
+          <textarea id="notes" placeholder="Bijv. ETH, 4H-grafiek. Nieuws: ETF-instroom deze week, Fed-besluit woensdag."></textarea>
+          <span class="hint">Naam, timeframe of nieuws dat je zelf weet. Claude kan zelf geen live nieuws ophalen.</span>
+        </div>
+        <button class="btn primary" id="go" type="button" disabled>Analyseer grafiek</button>
+        <div class="msg" id="goMsg" hidden></div>
+      </section>
+
+      <section class="panel" id="histPanel" hidden aria-labelledby="histTitle">
+        <h2 id="histTitle">Eerdere analyses</h2>
+        <div class="history" id="history"></div>
+      </section>
+    </aside>
+
+    <main class="results" id="results" aria-live="polite"></main>
+  </div>
+
+  <p class="foot">Koersradar leest alleen wat op je screenshot staat en geeft een inschatting, geen garantie. Ook goede setups gaan vaak mis; daarom staat er altijd een stop loss bij en riskeer je per trade maar een klein deel van je rekening.</p>
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  // ---------- helpers ----------
+  const $ = (s, r = document) => r.querySelector(s);
+  function h(tag, attrs, ...kids) {
+    const el = document.createElement(tag);
+    if (attrs) for (const [k, v] of Object.entries(attrs)) {
+      if (v == null || v === false) continue;
+      if (k === "class") el.className = v;
+      else if (k === "text") el.textContent = v;
+      else if (k.startsWith("on")) el.addEventListener(k.slice(2), v);
+      else el.setAttribute(k, v === true ? "" : v);
+    }
+    for (const kid of kids.flat()) {
+      if (kid == null || kid === false) continue;
+      el.append(kid instanceof Node ? kid : document.createTextNode(String(kid)));
+    }
+    return el;
+  }
+  const NS = "http://www.w3.org/2000/svg";
+  function s(tag, attrs) {
+    const el = document.createElementNS(NS, tag);
+    for (const [k, v] of Object.entries(attrs || {})) el.setAttribute(k, v);
+    return el;
+  }
+  const num = v => { const n = typeof v === "string" ? parseFloat(v.replace(/\s/g, "").replace(",", ".")) : Number(v); return Number.isFinite(n) ? n : null; };
+  const str = v => (v == null ? "" : String(v));
+  const arr = v => (Array.isArray(v) ? v : []);
+  function decimalsFor(p) {
+    const a = Math.abs(p);
+    if (a >= 1000) return 2;
+    if (a >= 10) return 2;
+    if (a >= 1) return 4;
+    if (a >= 0.01) return 5;
+    return 8;
+  }
+  function fmtP(p, ref) {
+    if (p == null) return "–";
+    const d = decimalsFor(ref ?? p);
+    return p.toLocaleString("nl-NL", { minimumFractionDigits: Math.min(2, d), maximumFractionDigits: d });
+  }
+  const fmtRaw = (p, ref) => (p == null ? "" : p.toFixed(decimalsFor(ref ?? p)));
+  const eur = v => (v == null ? "–" : v.toLocaleString("nl-NL", { style: "currency", currency: "EUR", maximumFractionDigits: v < 100 ? 2 : 0 }));
+  const pct = (v, d = 2) => (v == null ? "–" : (v > 0 ? "+" : "") + v.toLocaleString("nl-NL", { maximumFractionDigits: d }) + "%");
+  const fmtQty = q => q == null ? "–" : q.toLocaleString("nl-NL", { maximumFractionDigits: q >= 100 ? 0 : q >= 1 ? 3 : 6 });
+  function biasClass(b) {
+    const t = str(b).toLowerCase();
+    if (/bull|long|up|stijg|positief|koop/.test(t)) return "bull";
+    if (/bear|short|down|dal|negatief|verkoop/.test(t)) return "bear";
+    return "neutral";
+  }
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { return false; } },
+  };
+  async function copyText(text, btn) {
+    const old = btn.textContent;
+    try { await navigator.clipboard.writeText(text); btn.textContent = "Gekopieerd"; }
+    catch { btn.textContent = text; }
+    setTimeout(() => { btn.textContent = old; }, 1400);
+  }
+
+  // ---------- state ----------
+  const state = {
+    images: [],          // {file, url}
+    maxImages: 3,
+    sample: null,
+    canImages: false,
+    result: null,        // parsed analysis
+    resultThumb: null,
+    resultImageUrls: [],
+    isExample: true,
+    chat: [],
+    busy: false,
+  };
+  const prefs = store.get("kr-prefs", {});
+  const settings = {
+    account: num(prefs.account) ?? 1000,
+    risk: num(prefs.risk) ?? 1,
+    style: prefs.style || "day",
+    dir: prefs.dir || "both",
+  };
+
+  // ---------- settings UI ----------
+  const accountEl = $("#account"), riskEl = $("#risk"), notesEl = $("#notes");
+  accountEl.value = settings.account;
+  riskEl.value = settings.risk;
+  function setupSeg(id, key) {
+    const seg = $("#" + id);
+    seg.querySelectorAll("button").forEach(b => {
+      b.setAttribute("aria-pressed", String(b.dataset.v === settings[key]));
+      b.addEventListener("click", () => {
+        settings[key] = b.dataset.v;
+        seg.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+        savePrefs();
+      });
+    });
+  }
+  setupSeg("style", "style");
+  setupSeg("dir", "dir");
+  function savePrefs() { store.set("kr-prefs", settings); }
+  function updateRiskHint() {
+    const r = settings.account * settings.risk / 100;
+    $("#riskHint").textContent = `Je verliest maximaal ${eur(r)} als je stop loss geraakt wordt.`;
+  }
+  function onSettings() {
+    settings.account = Math.max(0, num(accountEl.value) ?? 0);
+    settings.risk = Math.min(10, Math.max(0, num(riskEl.value) ?? 0));
+    savePrefs(); updateRiskHint();
+    if (state.result) renderResult();
+  }
+  accountEl.addEventListener("input", onSettings);
+  riskEl.addEventListener("input", onSettings);
+  updateRiskHint();
+
+  // ---------- images ----------
+  const drop = $("#drop"), fileEl = $("#file"), thumbs = $("#thumbs");
+  function addFiles(list) {
+    for (const f of list) {
+      if (!/^image\/(png|jpe?g|webp|gif)$/.test(f.type)) continue;
+      if (state.images.length >= state.maxImages) state.images.shift();
+      state.images.push({ file: f, url: URL.createObjectURL(f) });
+    }
+    renderThumbs();
+  }
+  function renderThumbs() {
+    thumbs.replaceChildren(...state.images.map((im, i) =>
+      h("div", { class: "thumb" },
+        h("img", { src: im.url, alt: "Screenshot " + (i + 1) }),
+        h("button", { type: "button", "aria-label": "Verwijder screenshot " + (i + 1), onclick: () => { state.images.splice(i, 1); renderThumbs(); } }, "×"))));
+    thumbs.hidden = state.images.length === 0;
+    updateGo();
+  }
+  fileEl.addEventListener("change", () => { addFiles(fileEl.files); fileEl.value = ""; });
+  ["dragenter", "dragover"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("over"); }));
+  ["dragleave", "drop"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove("over"); }));
+  drop.addEventListener("drop", e => addFiles(e.dataTransfer.files));
+  document.addEventListener("paste", e => {
+    const files = [...(e.clipboardData?.items || [])].filter(i => i.kind === "file").map(i => i.getAsFile()).filter(Boolean);
+    if (files.length) addFiles(files);
+  });
+
+  const goBtn = $("#go"), goMsg = $("#goMsg");
+  function showMsg(text, err) { goMsg.textContent = text; goMsg.className = "msg" + (err ? " err" : ""); goMsg.hidden = !text; }
+  function updateGo() {
+    goBtn.disabled = state.busy || !state.sample || !state.canImages || state.images.length === 0;
+    goBtn.textContent = state.busy ? "Bezig met analyseren…" : state.images.length > 1 ? `Analyseer ${state.images.length} grafieken` : "Analyseer grafiek";
+  }
+
+  // ---------- Claude ----------
+  const statusDot = $("#statusDot"), statusText = $("#statusText");
+  (async () => {
+    const sample = window.claude?.use ? await window.claude.use("sample") : null;
+    if (!sample) {
+      statusDot.className = "dot off";
+      statusText.textContent = "Open deze pagina in Claude om te analyseren";
+      showMsg("Analyseren werkt alleen als je deze pagina opent op claude.ai of in de Claude-app. Hieronder zie je een voorbeeld.", false);
+      return;
+    }
+    state.sample = sample;
+    const lim = await sample.limits().catch(() => null);
+    state.canImages = !!lim?.images;
+    if (lim?.images) state.maxImages = Math.max(1, Math.min(3, lim.images.maxCount || 3));
+    statusDot.className = "dot " + (state.canImages ? "on" : "off");
+    statusText.textContent = state.canImages ? "Claude staat klaar" : "Afbeeldingen sturen kan hier niet";
+    if (!state.canImages) showMsg("In deze weergave kunnen geen afbeeldingen naar Claude. Open de pagina in de browser op claude.ai.", true);
+    updateGo();
+  })();
+
+  function errorCopy(e) {
+    switch (e?.code) {
+      case "not_granted": return "Je hebt Claude geen toestemming gegeven voor deze pagina. Herlaad de pagina om opnieuw te kiezen.";
+      case "rate_limited": return "Even te veel aanvragen of je gebruikslimiet is bereikt. Probeer het over een paar minuten opnieuw.";
+      case "image_rejected": return "Deze afbeelding wordt niet geaccepteerd. Gebruik een PNG of JPG kleiner dan 20 MB.";
+      case "session_expired": return "Je sessie is verlopen. Log opnieuw in bij Claude.";
+      case "invalid_json": return "Het antwoord kwam niet goed door. Druk nog een keer op analyseren.";
+      case "refused": return "Claude kon deze afbeelding niet analyseren. Probeer een duidelijke screenshot van alleen de grafiek.";
+      case "sampling_disabled": return "Claude is niet beschikbaar voor dit account.";
+      case "cancelled": return "";
+      default: return "Er ging iets mis met de verbinding. Probeer het opnieuw.";
+    }
+  }
+
+  function buildPrompt() {
+    const styleTxt = { scalp: "scalping (minuten tot ~1 uur vasthouden)", day: "daytrading (binnen dezelfde dag sluiten)", swing: "swingtrading (dagen tot weken)" }[settings.style];
+    const dirTxt = settings.dir === "long" ? "ALLEEN LONG (de trader kan niet shorten; geef bij een bearish beeld WAIT met wat er moet gebeuren voor een long)" : "long of short toegestaan";
+    return `Je bent een ervaren, voorzichtige technisch analist en risicomanager. Je krijgt ${state.images.length} screenshot(s) van een koersgrafiek (aandeel, crypto, forex, grondstof of index). Meerdere screenshots zijn vaak verschillende timeframes van hetzelfde instrument: gebruik de hogere timeframe voor de richting en de lagere voor de entry.
+
+De trader wil een kant-en-klaar plan: zelf hoeft hij alleen de order te plaatsen met stop loss en take profit. Wees dus concreet met exacte prijzen, maar eerlijk: is er geen goede setup, geef dan "WAIT".
+
+Trader-profiel:
+- Stijl: ${styleTxt}
+- Richting: ${dirTxt}
+- Risico per trade: ${settings.risk}% van ${settings.account} euro
+- Eigen notities: ${notesEl.value.trim() || "(geen)"}
+
+Werkwijze:
+1. Lees instrument, timeframe en de laatste koers af van de grafiek (as-labels, prijslabel rechts, titel). Kun je iets niet lezen, zeg dat in "leesbaarheid" en schat voorzichtig.
+2. Bepaal trend en marktstructuur (hogere toppen/bodems of lagere), belangrijke support- en weerstandszones, patronen (driehoeken, vlaggen, kop-schouders, dubbele top/bodem, kanalen, wedges, candlestickpatronen), volume en eventuele zichtbare indicatoren (RSI, MACD, MA's, Bollinger, enz.). Noem alleen indicatoren die je echt ziet of die je redelijk kunt afleiden, en zeg welke.
+3. Kies de beste trade. Regels:
+   - De stop loss staat op een technisch logische plek (achter een swing low/high of zone, met wat ruimte voor ruis), niet op een willekeurig percentage.
+   - Gebruik 1 tot 3 take profits op logische weerstand/support, met verdeling van de positie (close_pct telt op tot 100).
+   - Mik op minstens 1:2 risk/reward naar het laatste doel. Haalt geen enkele opzet minstens 1:1,5, kies dan WAIT.
+   - Bij een long: stop_loss < entry < alle tp's. Bij een short: stop_loss > entry > alle tp's.
+   - Kies het ordertype: "market" (nu instappen), "limit" (wachten op een terugval naar een betere prijs) of "stop" (instappen bij een uitbraak boven/onder een niveau).
+   - Bij WAIT: vul entry/stop_loss/take_profits toch in voor de beste toekomstige opzet en zet in "wachten_op" precies welke prijs of welk signaal eerst moet komen.
+4. Geef een confluence-checklist van 6 tot 10 factoren (trend hogere timeframe, structuur, zone, patroon, momentum, volume, risk/reward, enz.) met per factor of hij de trade steunt.
+5. Geef een bull- en bear-scenario met kans (samen 100).
+
+Antwoord ALLEEN met één JSON-object, alle tekst in het Nederlands, eenvoudig uitgelegd voor een beginnende trader. Prijzen als getallen (punt als decimaalteken). Vorm:
+{
+ "instrument": "ETH/USD", "markt": "crypto", "timeframe": "4H", "huidige_prijs": 4373.55,
+ "leesbaarheid": "goed | redelijk | slecht, met korte uitleg",
+ "actie": "LONG | SHORT | WAIT",
+ "zekerheid": 0-100,
+ "kernreden": "1-2 zinnen waarom",
+ "entry": { "type": "market | limit | stop", "prijs": 4300, "zone_laag": 4280, "zone_hoog": 4320, "uitleg": "waarom hier" },
+ "stop_loss": { "prijs": 3980, "uitleg": "waarom hier" },
+ "take_profits": [ { "prijs": 4600, "close_pct": 50, "uitleg": "eerste weerstand" } ],
+ "wachten_op": "wat er eerst moet gebeuren voordat je instapt (leeg bij market-order)",
+ "bevestiging": ["signaal dat de entry bevestigt"],
+ "ongeldig_als": "wanneer het plan niet meer klopt",
+ "tradebeheer": ["bijv. na TP1 stop loss naar break-even", "..."],
+ "verwachte_duur": "bijv. 1-3 dagen",
+ "markt_overzicht": {
+   "trend_kort": "omhoog | omlaag | zijwaarts", "trend_lang": "omhoog | omlaag | zijwaarts",
+   "structuur": "korte uitleg", "volatiliteit": "laag | normaal | hoog", "volume": "laag | normaal | hoog | niet zichtbaar",
+   "momentum": "korte uitleg", "sentiment": "angst | neutraal | hebzucht"
+ },
+ "niveaus": { "support": [ { "prijs": 4000, "sterkte": "sterk | middel | zwak", "uitleg": "" } ], "weerstand": [ { "prijs": 4600, "sterkte": "sterk", "uitleg": "" } ] },
+ "patronen": [ { "naam": "Stijgende driehoek", "richting": "bullish | bearish | neutraal", "betrouwbaarheid": "hoog | middel | laag", "uitleg": "" } ],
+ "indicatoren": [ { "naam": "RSI(14)", "waarde": "62", "lezing": "", "richting": "bullish | bearish | neutraal", "afgeleid": false } ],
+ "confluence": [ { "factor": "Trend hogere timeframe", "steunt": "ja | nee | deels", "uitleg": "" } ],
+ "scenarios": { "bull": { "kans": 60, "beschrijving": "" }, "bear": { "kans": 40, "beschrijving": "" } },
+ "risicos": ["belangrijkste gevaren voor deze trade"],
+ "samenvatting": "3-5 zinnen: wat je ziet en wat je het beste kunt doen"
+}`;
+  }
+
+  let analyzeCtl = null;
+  async function analyze() {
+    if (!state.sample || state.busy || !state.images.length) return;
+    state.busy = true; updateGo(); showMsg("", false);
+    analyzeCtl = new AbortController();
+    const files = state.images.map(i => i.file);
+    renderLoading();
+    const stepTimer = startLoadingSteps();
+    try {
+      const data = await state.sample.json(buildPrompt(), { images: files, modelTier: "complex", signal: analyzeCtl.signal, cache: false });
+      if (!data || typeof data !== "object") throw { code: "invalid_json" };
+      state.result = normalize(data);
+      state.isExample = false;
+      state.chat = [];
+      state.resultImageUrls = state.images.map(i => i.url);
+      state.resultThumb = await makeThumb(files[0]).catch(() => null);
+      saveHistory();
+      renderResult();
+    } catch (e) {
+      const m = errorCopy(e);
+      if (m) showMsg(m, true);
+      if (state.result) renderResult(); else renderEmpty();
+    } finally {
+      clearInterval(stepTimer);
+      state.busy = false; updateGo();
+    }
+  }
+  goBtn.addEventListener("click", analyze);
+
+  // ---------- normalize + local maths ----------
+  function normalize(d) {
+    const r = { ...d };
+    r.actie = /long/i.test(str(d.actie)) ? "LONG" : /short/i.test(str(d.actie)) ? "SHORT" : "WAIT";
+    r.zekerheid = Math.max(0, Math.min(100, num(d.zekerheid) ?? 50));
+    r.huidige_prijs = num(d.huidige_prijs);
+    const e = d.entry || {};
+    r.entry = { type: str(e.type || "market").toLowerCase(), prijs: num(e.prijs), zone_laag: num(e.zone_laag), zone_hoog: num(e.zone_hoog), uitleg: str(e.uitleg) };
+    if (r.entry.prijs == null) r.entry.prijs = r.huidige_prijs;
+    r.stop_loss = { prijs: num(d.stop_loss?.prijs), uitleg: str(d.stop_loss?.uitleg) };
+    r.take_profits = arr(d.take_profits).map(t => ({ prijs: num(t?.prijs), close_pct: num(t?.close_pct), uitleg: str(t?.uitleg) })).filter(t => t.prijs != null);
+    const n = r.take_profits.length;
+    const totalPct = r.take_profits.reduce((a, t) => a + (t.close_pct || 0), 0);
+    if (n && Math.abs(totalPct - 100) > 1) r.take_profits.forEach((t, i) => { t.close_pct = i < n - 1 ? Math.floor(100 / n) : 100 - Math.floor(100 / n) * (n - 1); });
+    r.niveaus = { support: arr(d.niveaus?.support), weerstand: arr(d.niveaus?.weerstand) };
+    return r;
+  }
+
+  function calc(r) {
+    const entry = r.entry.prijs, sl = r.stop_loss.prijs;
+    const dirLong = r.actie === "SHORT" ? false : r.actie === "LONG" ? true : (sl != null && entry != null ? sl < entry : true);
+    const out = { dirLong, problems: [], tps: [] };
+    if (entry == null || sl == null) { out.problems.push("Geen geldige entry of stop loss gevonden."); return out; }
+    const riskPer = Math.abs(entry - sl);
+    if (riskPer === 0) { out.problems.push("Stop loss ligt op de entry."); return out; }
+    if (dirLong && sl >= entry) out.problems.push("Stop loss ligt boven de entry bij een long. Controleer het plan.");
+    if (!dirLong && sl <= entry) out.problems.push("Stop loss ligt onder de entry bij een short. Controleer het plan.");
+    out.riskPct = (riskPer / entry) * 100;
+    out.riskAmount = settings.account * settings.risk / 100;
+    out.qty = out.riskAmount / riskPer;
+    out.notional = out.qty * entry;
+    out.leverage = settings.account > 0 ? out.notional / settings.account : null;
+    let wRR = 0, wSum = 0, expProfit = 0;
+    for (const t of r.take_profits) {
+      const move = dirLong ? t.prijs - entry : entry - t.prijs;
+      const rr = move / riskPer;
+      if (move <= 0) out.problems.push(`TP ${fmtP(t.prijs, entry)} ligt aan de verkeerde kant van de entry.`);
+      const share = (t.close_pct || 0) / 100;
+      const profit = out.qty * share * move;
+      out.tps.push({ ...t, rr, movePct: (move / entry) * 100, profit });
+      wRR += rr * share; wSum += share; expProfit += profit;
+    }
+    out.avgRR = wSum ? wRR / wSum : null;
+    out.maxRR = out.tps.length ? Math.max(...out.tps.map(t => t.rr)) : null;
+    out.totalProfit = expProfit;
+    const conf = arr(r.confluence);
+    const yes = conf.filter(c => /^ja/i.test(str(c.steunt))).length + 0.5 * conf.filter(c => /deels/i.test(str(c.steunt))).length;
+    out.confScore = conf.length ? yes / conf.length : null;
+    // Grade: our own check on top of Claude's call
+    let g = "C";
+    if (r.actie !== "WAIT" && !out.problems.length) {
+      if (r.zekerheid >= 70 && (out.avgRR ?? 0) >= 2 && (out.confScore ?? 0) >= 0.7) g = "A";
+      else if (r.zekerheid >= 55 && (out.avgRR ?? 0) >= 1.5 && (out.confScore ?? 0) >= 0.5) g = "B";
+    }
+    out.grade = g;
+    return out;
+  }
+
+  // ---------- rendering ----------
+  const results = $("#results");
+  const ICON = {
+    LONG: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V4M5 11l7-7 7 7"/></svg>',
+    SHORT: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16M5 13l7 7 7-7"/></svg>',
+    WAIT: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+  };
+  const iconEl = k => { const d = h("span", { "aria-hidden": "true" }); d.innerHTML = ICON[k]; return d.firstChild; };
+
+  function renderEmpty() {
+    results.replaceChildren(h("section", { class: "panel" }, h("h2", { text: "Nog geen analyse" }), h("p", { class: "muted", text: "Upload links een screenshot van je grafiek en druk op Analyseer." })));
+  }
+
+  const LOAD_STEPS = ["Grafiek lezen (instrument, timeframe, koers)", "Trend en marktstructuur bepalen", "Support, weerstand en patronen zoeken", "Indicatoren en volume beoordelen", "Entry, stop loss en take profits berekenen", "Risico controleren en plan schrijven"];
+  function renderLoading() {
+    const ol = h("ol", { id: "loadSteps" }, LOAD_STEPS.map((t, i) => h("li", { class: i === 0 ? "active" : "" }, h("span", { class: i === 0 ? "spin" : "idle" }), t)));
+    results.replaceChildren(h("section", { class: "panel loading" },
+      h("h2", { text: "Claude analyseert je grafiek" }),
+      h("p", { class: "muted", text: "Dit duurt meestal 30 tot 90 seconden. De eerste keer vraagt Claude om toestemming." }),
+      ol,
+      h("button", { class: "btn small", type: "button", onclick: () => analyzeCtl?.abort() }, "Stop")));
+  }
+  function startLoadingSteps() {
+    let i = 0;
+    return setInterval(() => {
+      const lis = document.querySelectorAll("#loadSteps li");
+      if (!lis.length || i >= lis.length - 1) return;
+      lis[i].className = "done"; lis[i].firstChild.className = "tick";
+      i++;
+      lis[i].className = "active"; lis[i].firstChild.className = "spin";
+    }, 9000);
+  }
+
+  function renderResult() {
+    const r = state.result, c = calc(r);
+    const tone = r.actie === "LONG" ? "long" : r.actie === "SHORT" ? "short" : "wait";
+    const ref = r.entry.prijs ?? r.huidige_prijs;
+    const kids = [];
+
+    if (state.isExample) kids.push(h("span", { class: "example-tag" }, "Voorbeeldanalyse. Upload je eigen grafiek voor een echt plan."));
+
+    // Signal card
+    const actionWord = r.actie === "LONG" ? "Long" : r.actie === "SHORT" ? "Short" : "Wachten";
+    const actionSub = r.actie === "LONG" ? "Kopen" : r.actie === "SHORT" ? "Verkopen / shorten" : "Nu geen trade";
+    kids.push(h("section", { class: "signal " + tone },
+      h("div", { class: "sig-head" },
+        h("div", { class: "sig-action" }, iconEl(r.actie), h("div", null, h("div", { class: "big", text: actionWord }), h("div", { class: "label", text: actionSub }))),
+        h("div", { class: "sig-meta" },
+          h("div", { class: "asset", text: str(r.instrument) || "Onbekend instrument" }),
+          h("div", { class: "muted" }, [str(r.timeframe), str(r.markt)].filter(Boolean).join(" · ")),
+          r.huidige_prijs != null ? h("div", { class: "mono", text: "Koers " + fmtP(r.huidige_prijs) }) : null)),
+      h("p", { class: "sig-why", text: str(r.kernreden) }),
+      h("div", { class: "gauges" },
+        h("div", { class: "gauge" }, h("span", { class: "label", text: "Zekerheid" }), h("span", { class: "val", text: r.zekerheid + "%" }), h("div", { class: "bar" }, h("i", { style: `width:${r.zekerheid}%` }))),
+        h("div", { class: "gauge" }, h("span", { class: "label", text: "Risk / reward" }), h("span", { class: "val", text: c.avgRR != null ? "1 : " + c.avgRR.toLocaleString("nl-NL", { maximumFractionDigits: 1 }) : "–" }), h("div", { class: "bar" }, h("i", { style: `width:${Math.min(100, (c.avgRR || 0) / 4 * 100)}%` }))),
+        h("div", { class: "gauge" }, h("span", { class: "label", text: "Confluence" }), h("span", { class: "val", text: c.confScore != null ? Math.round(c.confScore * 100) + "%" : "–" }), h("div", { class: "bar" }, h("i", { style: `width:${Math.round((c.confScore || 0) * 100)}%` }))),
+        h("div", { class: "gauge" }, h("span", { class: "label", text: "Setup-kwaliteit" }), h("div", { style: "display:flex;gap:8px;align-items:center" }, h("span", { class: "grade", text: c.grade }), h("span", { class: "muted", style: "font-size:12.5px", text: c.grade === "A" ? "Sterke setup" : c.grade === "B" ? "Redelijke setup, kleiner inzetten kan" : "Overslaan of wachten" })))),
+      str(r.leesbaarheid) && !/^goed/i.test(str(r.leesbaarheid)) ? h("div", { class: "warn", text: "Leesbaarheid: " + str(r.leesbaarheid) }) : null,
+      ...c.problems.map(p => h("div", { class: "warn", text: p }))
+    ));
+
+    // Steps: what you actually do
+    const typeTxt = { market: "Market-order: nu instappen", limit: "Limit-order: wacht tot de koers hier komt", stop: "Stop-order: instappen bij uitbraak" }[r.entry.type] || r.entry.type;
+    const buyWord = c.dirLong ? "Koop" : "Verkoop (short)";
+    const zone = r.entry.zone_laag != null && r.entry.zone_hoog != null ? `Zone ${fmtP(r.entry.zone_laag, ref)} – ${fmtP(r.entry.zone_hoog, ref)}. ` : "";
+    const stepsPanel = h("section", { class: "panel" },
+      h("div", { style: "display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center" },
+        h("h2", { text: r.actie === "WAIT" ? "Plan voor als de setup komt" : "Dit zet je in je app" }),
+        h("button", { class: "btn small", type: "button", onclick: e => copyText(planText(r, c), e.currentTarget) }, "Kopieer hele plan")),
+      r.actie === "WAIT" && str(r.wachten_op) ? h("div", { class: "msg", style: "background:var(--wait-bg);color:var(--wait)" }, h("strong", null, "Wacht op: "), str(r.wachten_op)) : null,
+      h("div", { class: "steps" },
+        h("div", { class: "step entry" },
+          h("span", { class: "n", text: "1" }),
+          h("div", { class: "what" }, h("strong", { text: `${buyWord} · ${typeTxt}` }), h("span", { text: zone + str(r.entry.uitleg) })),
+          h("div", { class: "tp-list" }, h("div", null, h("span", { class: "price", text: fmtP(r.entry.prijs, ref) })), copyBtn(fmtRaw(r.entry.prijs, ref)))),
+        h("div", { class: "step sl" },
+          h("span", { class: "n", text: "2" }),
+          h("div", { class: "what" }, h("strong", { text: c.riskPct != null ? `Stop loss (${pct(c.dirLong ? -c.riskPct : c.riskPct)})` : "Stop loss" }), h("span", { text: str(r.stop_loss.uitleg) })),
+          h("div", { class: "tp-list" }, h("div", null, h("span", { class: "price", text: fmtP(r.stop_loss.prijs, ref) })), copyBtn(fmtRaw(r.stop_loss.prijs, ref)))),
+        h("div", { class: "step tp" },
+          h("span", { class: "n", text: "3" }),
+          h("div", { class: "what" }, h("strong", { text: c.tps.length > 1 ? `Take profits (${c.tps.length} delen)` : "Take profit" }), h("span", { text: c.tps.map((t, i) => `TP${i + 1}: ${t.close_pct}% sluiten. ${t.uitleg}`).join(" ") })),
+          h("div", { class: "tp-list" }, c.tps.map((t, i) => h("div", null, h("small", { text: `TP${i + 1} · ${t.close_pct}%` }), h("span", { class: "price", text: fmtP(t.prijs, ref) }), copyBtn(fmtRaw(t.prijs, ref))))))),
+      h("div", null, h("div", { class: "label", style: "margin-bottom:6px", text: "Positiegrootte bij jouw instellingen" }),
+        h("div", { class: "size" },
+          h("div", { class: "kv" }, h("span", { class: "label", text: "Aantal" }), h("b", { text: fmtQty(c.qty) })),
+          h("div", { class: "kv" }, h("span", { class: "label", text: "Inleg (waarde)" }), h("b", { text: eur(c.notional) })),
+          h("div", { class: "kv" }, h("span", { class: "label", text: "Max. verlies" }), h("b", { class: "bear", text: eur(c.riskAmount) })),
+          h("div", { class: "kv" }, h("span", { class: "label", text: "Winst als alle TP's raken" }), h("b", { class: "bull", text: eur(c.totalProfit) })))),
+      c.leverage != null && c.leverage > 1 ? h("div", { class: "warn", text: `Deze positie is ${c.leverage.toLocaleString("nl-NL", { maximumFractionDigits: 1 })}× je rekening. Dat kan alleen met hefboom. Liever geen hefboom? Koop dan voor maximaal ${eur(settings.account)}; je risico wordt dan kleiner dan ${settings.risk}%.` }) : null,
+      h("p", { class: "muted", style: "font-size:12.5px", text: "Prijzen in de valuta van de grafiek. Bedragen in euro gaan ervan uit dat de grafiek ook in euro staat; staat hij in dollar, dan zijn ze in dollar. Bij forex is 1 lot meestal 100.000 eenheden." })
+    );
+    kids.push(stepsPanel);
+
+    // Ladder + R:R table
+    const rrTable = h("div", { class: "table-wrap" }, h("table", null,
+      h("thead", null, h("tr", null, h("th", { text: "Doel" }), h("th", { class: "num", text: "Prijs" }), h("th", { class: "num", text: "Beweging" }), h("th", { class: "num", text: "R:R" }), h("th", { class: "num", text: "Winst" }))),
+      h("tbody", null,
+        h("tr", null, h("td", { class: "bear", text: "Stop loss" }), h("td", { class: "num", text: fmtP(r.stop_loss.prijs, ref) }), h("td", { class: "num", text: c.riskPct != null ? pct(-c.riskPct) : "–" }), h("td", { class: "num", text: "−1R" }), h("td", { class: "num bear", text: eur(c.riskAmount != null ? -c.riskAmount : null) })),
+        c.tps.map((t, i) => h("tr", null, h("td", { class: "bull", text: `TP${i + 1} (${t.close_pct}%)` }), h("td", { class: "num", text: fmtP(t.prijs, ref) }), h("td", { class: "num", text: pct(t.movePct) }), h("td", { class: "num", text: t.rr.toLocaleString("nl-NL", { maximumFractionDigits: 2 }) + "R" }), h("td", { class: "num bull", text: eur(t.profit) }))))));
+    kids.push(h("div", { class: "two" },
+      h("section", { class: "panel" }, h("h2", { text: "Prijsladder" }), h("div", { class: "ladder-wrap" }, ladder(r, c))),
+      h("section", { class: "panel" }, h("h2", { text: "Risico en beloning" }), rrTable,
+        h("p", { class: "muted", style: "font-size:13px", text: "1R is het bedrag dat je riskeert. Een trade met 2R levert dus twee keer je risico op." }),
+        listBlock("Instappen als", arr(r.bevestiging)),
+        str(r.ongeldig_als) ? h("div", { class: "warn", text: "Plan vervalt als: " + str(r.ongeldig_als) }) : null)));
+
+    // Trade management
+    kids.push(h("section", { class: "panel" }, h("h2", { text: "Na het instappen" }),
+      arr(r.tradebeheer).length ? h("ol", { class: "plain" }, arr(r.tradebeheer).map(t => h("li", { text: str(t) }))) : h("p", { class: "muted", text: "Geen extra instructies." }),
+      str(r.verwachte_duur) ? h("p", { class: "muted", text: "Verwachte duur: " + str(r.verwachte_duur) }) : null));
+
+    // Market overview
+    const mo = r.markt_overzicht || {};
+    const tile = (lab, v, extraCls) => h("div", { class: "tile" }, h("span", { class: "label", text: lab }), h("span", { class: "v " + (extraCls || ""), text: str(v) || "–" }));
+    kids.push(h("section", { class: "panel" }, h("h2", { text: "Marktbeeld" }),
+      h("div", { class: "tiles" },
+        tile("Trend kort", mo.trend_kort, biasClass(mo.trend_kort === "omhoog" ? "up" : mo.trend_kort === "omlaag" ? "down" : "")),
+        tile("Trend lang", mo.trend_lang, biasClass(mo.trend_lang === "omhoog" ? "up" : mo.trend_lang === "omlaag" ? "down" : "")),
+        tile("Volatiliteit", mo.volatiliteit),
+        tile("Volume", mo.volume),
+        tile("Sentiment", mo.sentiment)),
+      str(mo.structuur) ? h("p", null, h("strong", null, "Structuur: "), str(mo.structuur)) : null,
+      str(mo.momentum) ? h("p", null, h("strong", null, "Momentum: "), str(mo.momentum)) : null));
+
+    // Confluence + scenarios
+    const conf = arr(r.confluence);
+    kids.push(h("div", { class: "two" },
+      h("section", { class: "panel" }, h("h2", { text: "Checklist" }),
+        h("ul", { class: "checks" }, conf.map(x => {
+          const v = str(x.steunt).toLowerCase(); const k = /^ja/.test(v) ? "y" : /deels/.test(v) ? "m" : "n";
+          return h("li", null, h("span", { class: "mark " + k, text: k === "y" ? "✓" : k === "m" ? "~" : "✕" }), h("div", null, str(x.factor), h("small", { text: str(x.uitleg) })), h("span", { class: "pill " + (k === "y" ? "bull" : k === "m" ? "neutral" : "bear"), text: str(x.steunt) }));
+        }))),
+      h("section", { class: "panel" }, h("h2", { text: "Scenario's" }),
+        h("div", { class: "scen" },
+          scen("Stijgend", r.scenarios?.bull, "bull"),
+          scen("Dalend", r.scenarios?.bear, "bear")),
+        listBlock("Risico's", arr(r.risicos)))));
+
+    // Levels, patterns, indicators
+    const lvlRows = [
+      ...arr(r.niveaus.weerstand).map(l => ({ ...l, kind: "Weerstand" })),
+      ...arr(r.niveaus.support).map(l => ({ ...l, kind: "Support" })),
+    ].map(l => ({ ...l, p: num(l.prijs) })).filter(l => l.p != null).sort((a, b) => b.p - a.p);
+    kids.push(h("div", { class: "two" },
+      h("section", { class: "panel" }, h("h2", { text: "Belangrijke niveaus" }),
+        h("div", { class: "table-wrap" }, h("table", null,
+          h("thead", null, h("tr", null, h("th", { text: "Soort" }), h("th", { class: "num", text: "Prijs" }), h("th", { text: "Sterkte" }), h("th", { text: "Waarom" }))),
+          h("tbody", null, lvlRows.map(l => h("tr", null, h("td", { class: l.kind === "Support" ? "bull" : "bear", text: l.kind }), h("td", { class: "num", text: fmtP(l.p, ref) }), h("td", null, h("span", { class: "pill", text: str(l.sterkte) })), h("td", { text: str(l.uitleg) }))))))),
+      h("section", { class: "panel" }, h("h2", { text: "Patronen en indicatoren" }),
+        h("div", null,
+          arr(r.patronen).map(p => h("details", null, h("summary", null, h("span", null, str(p.naam)), h("span", { class: "pill " + biasClass(p.richting), text: str(p.richting) })), h("div", null, h("p", { text: str(p.uitleg) }), h("p", { class: "muted", text: "Betrouwbaarheid: " + str(p.betrouwbaarheid) })))),
+          arr(r.indicatoren).map(p => h("details", null, h("summary", null, h("span", null, str(p.naam), str(p.waarde) ? h("span", { class: "mono muted", text: "  " + str(p.waarde) }) : null), h("span", { class: "pill " + biasClass(p.richting), text: str(p.richting) })), h("div", null, h("p", { text: str(p.lezing) }), p.afgeleid ? h("p", { class: "muted", text: "Niet zichtbaar op de grafiek, afgeleid uit het koersverloop." }) : null)))))));
+
+    // Summary + chart
+    kids.push(h("section", { class: "panel" }, h("h2", { text: "Uitleg in gewone taal" }), h("p", { style: "max-width:70ch", text: str(r.samenvatting) }),
+      state.resultImageUrls.length ? h("div", { class: "thumbs" }, state.resultImageUrls.map(u => h("img", { class: "chart-img", src: u, alt: "Geanalyseerde grafiek" }))) :
+      state.resultThumb ? h("img", { class: "chart-img", src: state.resultThumb, alt: "Geanalyseerde grafiek (verkleind)" }) : null));
+
+    // Coach chat
+    kids.push(chatPanel());
+    results.replaceChildren(...kids);
+  }
+
+  function copyBtn(text) { return text ? h("button", { class: "copy", type: "button", onclick: e => copyText(text, e.currentTarget) }, "kopieer") : null; }
+  function listBlock(title, items) {
+    if (!items.length) return null;
+    return h("div", null, h("div", { class: "label", style: "margin-bottom:6px", text: title }), h("ul", { class: "plain" }, items.map(t => h("li", { text: str(t) }))));
+  }
+  function scen(title, sc, cls) {
+    sc = sc || {};
+    return h("div", null, h("div", { style: "display:flex;justify-content:space-between" }, h("strong", { class: cls, text: title }), h("span", { class: "prob " + cls, text: (num(sc.kans) ?? "–") + "%" })), h("p", { style: "font-size:14px", text: str(sc.beschrijving) }));
+  }
+
+  function ladder(r, c) {
+    const ref = r.entry.prijs;
+    const pts = [
+      { p: r.stop_loss.prijs, t: "Stop loss", cls: "l-sl" },
+      { p: r.entry.prijs, t: "Entry", cls: "l-entry" },
+      ...c.tps.map((t, i) => ({ p: t.prijs, t: "TP" + (i + 1), cls: "l-tp" })),
+    ].filter(x => x.p != null);
+    if (r.huidige_prijs != null && Math.abs(r.huidige_prijs - (ref ?? 0)) / (ref || 1) > 0.002) pts.push({ p: r.huidige_prijs, t: "Nu", cls: "l-lvl" });
+    if (!pts.length) return h("p", { class: "muted", text: "Geen prijzen om te tekenen." });
+    let lo = Math.min(...pts.map(x => x.p)), hi = Math.max(...pts.map(x => x.p));
+    const pad = (hi - lo) * 0.08 || hi * 0.01;
+    lo -= pad; hi += pad;
+    const W = 420, H = 300, top = 14, bot = 14, x0 = 96, x1 = W - 92;
+    const y = p => top + (hi - p) / (hi - lo) * (H - top - bot);
+    const svg = s("svg", { viewBox: `0 0 ${W} ${H}`, width: "100%", class: "ladder", role: "img", "aria-label": "Prijsladder met entry, stop loss en take profits" });
+    svg.style.minWidth = "320px";
+    if (r.entry.prijs != null && r.stop_loss.prijs != null) {
+      const ye = y(r.entry.prijs), ys = y(r.stop_loss.prijs);
+      svg.append(s("rect", { x: x0, y: Math.min(ye, ys), width: x1 - x0, height: Math.abs(ys - ye), class: "z-risk" }));
+      const far = c.tps.length ? (c.dirLong ? Math.max(...c.tps.map(t => t.prijs)) : Math.min(...c.tps.map(t => t.prijs))) : null;
+      if (far != null) { const yf = y(far); svg.append(s("rect", { x: x0, y: Math.min(ye, yf), width: x1 - x0, height: Math.abs(yf - ye), class: "z-reward" })); }
+    }
+    svg.append(s("line", { x1: x0, x2: x0, y1: top, y2: H - bot, class: "axis", "stroke-width": 1 }));
+    // Keep labels from colliding: sort by y and nudge apart
+    const items = pts.map(x => ({ ...x, yy: y(x.p) })).sort((a, b) => a.yy - b.yy);
+    let last = -Infinity; for (const it of items) { it.ly = Math.max(it.yy, last + 14); last = it.ly; }
+    for (const it of items) {
+      svg.append(s("line", { x1: x0, x2: x1, y1: it.yy, y2: it.yy, class: it.cls, "stroke-width": it.cls === "l-lvl" ? 1.2 : 2 }));
+      const tl = s("text", { x: x0 - 8, y: it.ly + 4, "text-anchor": "end", class: "lbl" }); tl.textContent = it.t; svg.append(tl);
+      const tp = s("text", { x: x1 + 6, y: it.ly + 4 }); tp.textContent = fmtP(it.p, ref); svg.append(tp);
+    }
+    return svg;
+  }
+
+  function planText(r, c) {
+    const ref = r.entry.prijs;
+    const L = [];
+    L.push(`${str(r.instrument)} ${str(r.timeframe)} · ${r.actie} · zekerheid ${r.zekerheid}% · setup ${c.grade}`);
+    if (r.actie === "WAIT" && str(r.wachten_op)) L.push(`Wacht op: ${str(r.wachten_op)}`);
+    L.push(`Entry (${r.entry.type}): ${fmtRaw(r.entry.prijs, ref)}`);
+    L.push(`Stop loss: ${fmtRaw(r.stop_loss.prijs, ref)}`);
+    c.tps.forEach((t, i) => L.push(`TP${i + 1}: ${fmtRaw(t.prijs, ref)} (${t.close_pct}% sluiten, ${t.rr.toFixed(2)}R)`));
+    if (c.qty != null) L.push(`Aantal: ${fmtQty(c.qty)} · inleg ≈ ${eur(c.notional)} · max verlies ${eur(c.riskAmount)}`);
+    arr(r.tradebeheer).forEach(t => L.push(`- ${str(t)}`));
+    if (str(r.ongeldig_als)) L.push(`Vervalt als: ${str(r.ongeldig_als)}`);
+    return L.join("\n");
+  }
+
+  // ---------- coach chat ----------
+  let chatCtl = null;
+  function chatPanel() {
+    const bubbles = h("div", { class: "bubbles", id: "bubbles" }, state.chat.map(m => h("div", { class: "bubble " + (m.role === "user" ? "me" : "ai"), text: m.content })));
+    const input = h("input", { type: "text", id: "askInput", placeholder: "Vraag iets over deze trade…" });
+    const send = h("button", { class: "btn", type: "button", id: "askBtn" }, "Vraag");
+    const can = !!state.sample;
+    input.disabled = !can; send.disabled = !can;
+    const submit = q => { q = (q ?? input.value).trim(); if (q) { input.value = ""; ask(q); } };
+    send.addEventListener("click", () => submit());
+    input.addEventListener("keydown", e => { if (e.key === "Enter") submit(); });
+    const sugg = ["Waarom deze stop loss?", "Wat als de koers eerst nog zakt?", "Hoe zet ik dit in mijn app?", "Is het slim om nu in te stappen?"];
+    return h("section", { class: "panel chat" },
+      h("h2", { text: "Vraag de coach" }),
+      h("p", { class: "muted", style: "font-size:13.5px", text: can ? "Stel een vraag over deze analyse. De coach kent het plan en jouw instellingen." : "Werkt als je deze pagina in Claude opent." }),
+      bubbles,
+      h("div", { class: "chips" }, sugg.map(q => h("button", { type: "button", disabled: !can, onclick: () => submit(q) }, q))),
+      h("div", { class: "ask" }, input, send));
+  }
+  async function ask(q) {
+    if (!state.sample || !state.result) return;
+    chatCtl?.abort();
+    chatCtl = new AbortController();
+    state.chat.push({ role: "user", content: q });
+    const bubbles = $("#bubbles");
+    bubbles.append(h("div", { class: "bubble me", text: q }));
+    const out = h("div", { class: "bubble ai", text: "Denkt na…" });
+    bubbles.append(out); bubbles.scrollTop = bubbles.scrollHeight;
+    const c = calc(state.result);
+    const rules = `Je bent een rustige, eerlijke tradingcoach. Antwoord in het Nederlands, kort (max ~150 woorden), simpel uitgelegd voor een beginner. Baseer je op deze analyse van een grafiek (JSON) en de berekende positie. Verzin geen live nieuws of koersen. Benadruk waar nodig risicobeheer, maar preek niet.\n\nAnalyse:\n${JSON.stringify(state.result).slice(0, 12000)}\n\nBerekening: ${JSON.stringify({ aantal: c.qty, inleg_eur: c.notional, max_verlies_eur: c.riskAmount, gemiddelde_rr: c.avgRR, setup: c.grade })}\nInstellingen: rekening ${settings.account} euro, risico ${settings.risk}%, stijl ${settings.style}, richting ${settings.dir}.`;
+    const turns = [{ role: "user", content: rules }, ...state.chat.slice(-10)];
+    try {
+      const { text } = await state.sample(turns, { cache: false, signal: chatCtl.signal, onText: ({ text }) => { out.textContent = text; bubbles.scrollTop = bubbles.scrollHeight; } });
+      state.chat.push({ role: "assistant", content: text });
+    } catch (e) {
+      out.textContent = e?.text || errorCopy(e) || "Gestopt.";
+      state.chat.pop();
+    }
+  }
+
+  // ---------- history ----------
+  async function makeThumb(file) {
+    const bmp = await createImageBitmap(file);
+    const w = 360, hgt = Math.round(bmp.height * w / bmp.width);
+    const cv = document.createElement("canvas"); cv.width = w; cv.height = hgt;
+    cv.getContext("2d").drawImage(bmp, 0, 0, w, hgt);
+    return cv.toDataURL("image/jpeg", 0.62);
+  }
+  function saveHistory() {
+    const list = store.get("kr-history", []);
+    list.unshift({ at: Date.now(), result: state.result, thumb: state.resultThumb });
+    while (list.length > 12) list.pop();
+    while (list.length && !store.set("kr-history", list)) list.pop();
+    renderHistory();
+  }
+  function renderHistory() {
+    const list = store.get("kr-history", []);
+    $("#histPanel").hidden = !list.length;
+    $("#history").replaceChildren(...list.map(item => {
+      const r = item.result || {};
+      const tone = r.actie === "LONG" ? "bull" : r.actie === "SHORT" ? "bear" : "neutral";
+      return h("button", { class: "hist", type: "button", onclick: () => {
+        state.result = normalize(item.result); state.resultThumb = item.thumb; state.resultImageUrls = []; state.isExample = false; state.chat = [];
+        renderResult(); results.scrollIntoView({ behavior: "smooth", block: "start" });
+      } },
+        item.thumb ? h("img", { src: item.thumb, alt: "" }) : h("span", { class: "ph" }),
+        h("span", null, h("b", { text: str(r.instrument) || "Grafiek" }), h("small", { text: `${str(r.timeframe)} · ${new Date(item.at).toLocaleString("nl-NL", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}` })),
+        h("span", { class: "pill " + tone, text: r.actie || "?" }));
+    }));
+  }
+
+  // ---------- example (shown until the first real analysis) ----------
+  const EXAMPLE = {
+    instrument: "ETH/USD", markt: "crypto", timeframe: "1D", huidige_prijs: 4373.55,
+    leesbaarheid: "goed: prijsas en laatste koers zijn duidelijk leesbaar",
+    actie: "LONG", zekerheid: 68,
+    kernreden: "Hogere bodems sinds de zomer en een uitbraak boven de 4.000-zone. Een terugval naar die zone is een kansrijke instap met een duidelijke stop eronder.",
+    entry: { type: "limit", prijs: 4280, zone_laag: 4240, zone_hoog: 4320, uitleg: "Terugval naar het uitbraakniveau, dat nu als support kan werken." },
+    stop_loss: { prijs: 3960, uitleg: "Onder de laatste hogere bodem en onder de 4.000-zone. Zakt de koers daaronder, dan klopt de trend niet meer." },
+    take_profits: [
+      { prijs: 4700, close_pct: 40, uitleg: "Vorige top." },
+      { prijs: 4950, close_pct: 35, uitleg: "Rond de all-time high." },
+      { prijs: 5350, close_pct: 25, uitleg: "Uitbreiding van de driehoek." },
+    ],
+    wachten_op: "",
+    bevestiging: ["Een groene dagcandle die sluit boven 4.300", "Geen dagslot onder 4.200"],
+    ongeldig_als: "de koers op de dag sluit onder 3.960.",
+    tradebeheer: ["Na TP1 je stop loss verplaatsen naar de entry (break-even).", "Na TP2 de stop loss naar TP1 zetten.", "Niet bijkopen als de koers tegen je in gaat."],
+    verwachte_duur: "1 tot 4 weken",
+    markt_overzicht: { trend_kort: "omhoog", trend_lang: "omhoog", structuur: "Hogere toppen en hogere bodems sinds juni.", volatiliteit: "hoog", volume: "hoog", momentum: "Sterk, maar na een snelle stijging is een terugval normaal.", sentiment: "hebzucht" },
+    niveaus: {
+      support: [{ prijs: 4000, sterkte: "sterk", uitleg: "Oude weerstand, nu support" }, { prijs: 3600, sterkte: "middel", uitleg: "Laatste swing low" }],
+      weerstand: [{ prijs: 4700, sterkte: "middel", uitleg: "Vorige top" }, { prijs: 4950, sterkte: "sterk", uitleg: "All-time high-zone" }],
+    },
+    patronen: [{ naam: "Stijgende driehoek", richting: "bullish", betrouwbaarheid: "middel", uitleg: "Vlakke weerstand rond 4.000 met steeds hogere bodems, nu uitgebroken. Wijst vaak op voortzetting van de trend." }],
+    indicatoren: [{ naam: "RSI(14)", waarde: "≈66", lezing: "Sterk, nog niet extreem overkocht.", richting: "bullish", afgeleid: true }],
+    confluence: [
+      { factor: "Trend hogere timeframe", steunt: "ja", uitleg: "Duidelijk omhoog" },
+      { factor: "Marktstructuur", steunt: "ja", uitleg: "Hogere bodems" },
+      { factor: "Entry op een zone", steunt: "ja", uitleg: "Retest van 4.000-4.300" },
+      { factor: "Patroon", steunt: "ja", uitleg: "Uitbraak uit stijgende driehoek" },
+      { factor: "Momentum", steunt: "deels", uitleg: "Sterk, maar uitgerekt" },
+      { factor: "Volume", steunt: "ja", uitleg: "Hoger bij de uitbraak" },
+      { factor: "Risk/reward", steunt: "ja", uitleg: "Boven 1:2 gemiddeld" },
+      { factor: "Sentiment", steunt: "nee", uitleg: "Veel hebzucht verhoogt de kans op een scherpe correctie" },
+    ],
+    scenarios: { bull: { kans: 62, beschrijving: "Terugval naar 4.300 wordt gekocht, daarna richting 4.700 en 4.950." }, bear: { kans: 38, beschrijving: "Uitbraak mislukt, koers valt terug onder 4.000 en test 3.600." } },
+    risicos: ["Hoge volatiliteit: grote candles kunnen je stop raken.", "Groot nieuws (Fed, ETF-stromen) kan de richting snel omdraaien."],
+    samenvatting: "ETH staat in een duidelijke opwaartse trend en is boven de 4.000 uitgebroken. Niet achter de koers aan rennen: zet een kooporder rond 4.280 en je stop op 3.960. Haal stap voor stap winst bij 4.700, 4.950 en 5.350, en zet na het eerste doel je stop op break-even zodat je niets meer kunt verliezen.",
+  };
+  state.result = normalize(EXAMPLE);
+  renderResult();
+  renderHistory();
+
+  // Restore the last real analysis instead of the example, if there is one
+  const hist = store.get("kr-history", []);
+  if (hist.length && hist[0]?.result) {
+    state.result = normalize(hist[0].result); state.resultThumb = hist[0].thumb; state.isExample = false;
+    renderResult();
+  }
+})();
+</script>
